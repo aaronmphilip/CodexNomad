@@ -26,19 +26,21 @@ type Entitlement struct {
 }
 
 type CloudServer struct {
-	ID                string    `json:"id"`
-	UserID            string    `json:"user_id"`
-	Agent             string    `json:"agent"`
-	Region            string    `json:"region"`
-	Country           string    `json:"country,omitempty"`
-	Status            string    `json:"status"`
-	DropletID         int64     `json:"droplet_id,omitempty"`
-	PublicIPv4        string    `json:"public_ipv4,omitempty"`
-	TailscaleHostname string    `json:"tailscale_hostname,omitempty"`
-	TailscaleAuthKeyID string   `json:"tailscale_auth_key_id,omitempty"`
-	RepoURL           string   `json:"repo_url,omitempty"`
-	CreatedAt         time.Time `json:"created_at"`
-	UpdatedAt         time.Time `json:"updated_at"`
+	ID                 string    `json:"id"`
+	UserID             string    `json:"user_id"`
+	Agent              string    `json:"agent"`
+	DaemonSessionID    string    `json:"daemon_session_id,omitempty"`
+	PairingPayload     any       `json:"pairing_payload,omitempty"`
+	Region             string    `json:"region"`
+	Country            string    `json:"country,omitempty"`
+	Status             string    `json:"status"`
+	DropletID          int64     `json:"droplet_id,omitempty"`
+	PublicIPv4         string    `json:"public_ipv4,omitempty"`
+	TailscaleHostname  string    `json:"tailscale_hostname,omitempty"`
+	TailscaleAuthKeyID string    `json:"tailscale_auth_key_id,omitempty"`
+	RepoURL            string    `json:"repo_url,omitempty"`
+	CreatedAt          time.Time `json:"created_at"`
+	UpdatedAt          time.Time `json:"updated_at"`
 }
 
 type WebhookEvent struct {
@@ -51,11 +53,11 @@ type WebhookEvent struct {
 }
 
 type ProvisionRequest struct {
-	UserID  string `json:"user_id"`
-	Email   string `json:"email,omitempty"`
-	Country string `json:"country,omitempty"`
-	Agent   string `json:"agent,omitempty"`
-	RepoURL string `json:"repo_url,omitempty"`
+	UserID   string `json:"user_id"`
+	Email    string `json:"email,omitempty"`
+	Country  string `json:"country,omitempty"`
+	Agent    string `json:"agent,omitempty"`
+	RepoURL  string `json:"repo_url,omitempty"`
 	ClientIP string `json:"-"`
 }
 
@@ -65,4 +67,16 @@ type ProvisionResponse struct {
 	Region           string `json:"region"`
 	EstimatedSeconds int    `json:"estimated_seconds"`
 	Message          string `json:"message"`
+}
+
+type BillingCheckoutRequest struct {
+	UserID  string `json:"user_id"`
+	Email   string `json:"email,omitempty"`
+	Country string `json:"country,omitempty"`
+}
+
+type BillingCheckoutResponse struct {
+	Provider string `json:"provider"`
+	URL      string `json:"url"`
+	Message  string `json:"message,omitempty"`
 }

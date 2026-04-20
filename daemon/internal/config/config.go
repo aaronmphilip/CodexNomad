@@ -16,15 +16,18 @@ const (
 )
 
 type Config struct {
-	RelayURL     string
-	RelayToken   string
-	ConfigDir    string
-	RuntimeDir   string
-	LogDir       string
-	CodexBin     string
-	ClaudeBin    string
-	Mode         string
-	RequireRelay bool
+	RelayURL           string
+	RelayToken         string
+	CloudServerID      string
+	CloudRegisterURL   string
+	CloudRegisterToken string
+	ConfigDir          string
+	RuntimeDir         string
+	LogDir             string
+	CodexBin           string
+	ClaudeBin          string
+	Mode               string
+	RequireRelay       bool
 }
 
 func Load() (Config, error) {
@@ -38,15 +41,18 @@ func Load() (Config, error) {
 	}
 
 	cfg := Config{
-		RelayURL:     env("CODEXNOMAD_RELAY_URL", DefaultRelayURL),
-		RelayToken:   os.Getenv("CODEXNOMAD_RELAY_TOKEN"),
-		ConfigDir:    configDir,
-		RuntimeDir:   runtimeDir,
-		LogDir:       filepath.Join(configDir, "logs"),
-		CodexBin:     env("CODEXNOMAD_CODEX_BIN", "codex"),
-		ClaudeBin:    env("CODEXNOMAD_CLAUDE_BIN", "claude"),
-		Mode:         env("CODEXNOMAD_MODE", detectMode()),
-		RequireRelay: envBool("CODEXNOMAD_REQUIRE_RELAY"),
+		RelayURL:           env("CODEXNOMAD_RELAY_URL", DefaultRelayURL),
+		RelayToken:         os.Getenv("CODEXNOMAD_RELAY_TOKEN"),
+		CloudServerID:      os.Getenv("CODEXNOMAD_CLOUD_SERVER_ID"),
+		CloudRegisterURL:   os.Getenv("CODEXNOMAD_CLOUD_REGISTER_URL"),
+		CloudRegisterToken: os.Getenv("CODEXNOMAD_CLOUD_REGISTER_TOKEN"),
+		ConfigDir:          configDir,
+		RuntimeDir:         runtimeDir,
+		LogDir:             filepath.Join(configDir, "logs"),
+		CodexBin:           env("CODEXNOMAD_CODEX_BIN", "codex"),
+		ClaudeBin:          env("CODEXNOMAD_CLAUDE_BIN", "claude"),
+		Mode:               env("CODEXNOMAD_MODE", detectMode()),
+		RequireRelay:       envBool("CODEXNOMAD_REQUIRE_RELAY"),
 	}
 	if err := validateRelay(cfg.RelayURL); err != nil {
 		return Config{}, err

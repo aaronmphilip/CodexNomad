@@ -19,6 +19,7 @@ const usage = `Codex Nomad daemon
 Usage:
   codexnomad codex [args...]    Start a remote-controllable Codex session
   codexnomad claude [args...]   Start a remote-controllable Claude Code session
+  codexnomad cloud-worker       Start a headless cloud Codex/Claude worker
   codexnomad install            Install/autostart the background daemon
   codexnomad start              Start the background daemon in the foreground
   codexnomad status             Show daemon status
@@ -54,6 +55,8 @@ func Run(args []string) error {
 		return session.Run(context.Background(), cfg, session.AgentCodex, rest)
 	case "claude":
 		return session.Run(context.Background(), cfg, session.AgentClaude, rest)
+	case "cloud-worker":
+		return session.RunCloudWorker(context.Background(), cfg, rest)
 	case "install":
 		return service.Install(cfg)
 	case "start":

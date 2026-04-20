@@ -79,16 +79,16 @@ func (p *Provisioner) StartCloudSession(ctx context.Context, req model.Provision
 	serverID := "srv_" + randomID()
 	host := "cn-" + short(req.UserID) + "-" + short(serverID)
 	server := model.CloudServer{
-		ID:        serverID,
-		UserID:    req.UserID,
-		Agent:     req.Agent,
-		Region:    region,
-		Country:   strings.ToUpper(req.Country),
-		Status:    "creating",
-		RepoURL:   req.RepoURL,
+		ID:                serverID,
+		UserID:            req.UserID,
+		Agent:             req.Agent,
+		Region:            region,
+		Country:           strings.ToUpper(req.Country),
+		Status:            "creating",
+		RepoURL:           req.RepoURL,
 		TailscaleHostname: host,
-		CreatedAt: now,
-		UpdatedAt: now,
+		CreatedAt:         now,
+		UpdatedAt:         now,
 	}
 
 	tsKey, err := CreateTailscaleAuthKey(ctx, p.cfg, "Codex Nomad "+serverID)

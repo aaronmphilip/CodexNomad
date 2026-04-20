@@ -34,13 +34,19 @@ codexnomad logs
 codexnomad stop
 ```
 
+Headless cloud worker command used by provisioned droplets:
+
+```sh
+CODEXNOMAD_MODE=cloud codexnomad cloud-worker
+```
+
 ## Cloud mode
 
 Cloud runners are provisioned by the backend on DigitalOcean. The provisioner installs this same daemon binary on the droplet, enrolls the node into Tailscale with a short-lived tagged auth key, and starts sessions with:
 
 ```sh
-CODEXNOMAD_MODE=cloud codexnomad codex
-CODEXNOMAD_MODE=cloud codexnomad claude
+CODEXNOMAD_MODE=cloud CODEXNOMAD_AGENT=codex codexnomad cloud-worker
+CODEXNOMAD_MODE=cloud CODEXNOMAD_AGENT=claude codexnomad cloud-worker
 ```
 
 For PC-off mode to be real, the project must already be available to the cloud runner. The supported v1 paths are:

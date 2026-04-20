@@ -10,32 +10,36 @@ import (
 type Config struct {
 	Port string
 
-	PublicBaseURL    string
-	RelaySharedToken string
-	AppSharedToken   string
-	AdminSharedToken string
+	PublicBaseURL     string
+	RelaySharedToken  string
+	RelayTicketSecret string
+	AppSharedToken    string
+	AdminSharedToken  string
 
 	SupabaseURL            string
 	SupabaseServiceRoleKey string
+	SupabaseJWTSecret      string
 
-	DigitalOceanToken string
-	DigitalOceanImage string
-	DigitalOceanSize  string
+	DigitalOceanToken   string
+	DigitalOceanImage   string
+	DigitalOceanSize    string
 	DigitalOceanSSHKeys []string
-	DigitalOceanTag   string
+	DigitalOceanTag     string
 
 	TailscaleTailnet string
 	TailscaleAPIKey  string
 	TailscaleTags    []string
 
-	ReleaseBaseURL     string
-	DaemonRelayURL     string
-	CloudBootstrapURL  string
-	CodeXInstallCommand string
+	ReleaseBaseURL       string
+	DaemonRelayURL       string
+	CloudBootstrapURL    string
+	CodeXInstallCommand  string
 	ClaudeInstallCommand string
 
 	PolarWebhookSecret    string
 	RazorpayWebhookSecret string
+	PolarCheckoutURL      string
+	RazorpayCheckoutURL   string
 
 	DefaultTrialDays int
 }
@@ -45,10 +49,12 @@ func Load() (Config, error) {
 		Port:                   env("PORT", "8080"),
 		PublicBaseURL:          strings.TrimRight(env("PUBLIC_BASE_URL", "http://localhost:8080"), "/"),
 		RelaySharedToken:       os.Getenv("RELAY_SHARED_TOKEN"),
+		RelayTicketSecret:      os.Getenv("RELAY_TICKET_SECRET"),
 		AppSharedToken:         os.Getenv("APP_SHARED_TOKEN"),
 		AdminSharedToken:       os.Getenv("ADMIN_SHARED_TOKEN"),
 		SupabaseURL:            strings.TrimRight(os.Getenv("SUPABASE_URL"), "/"),
 		SupabaseServiceRoleKey: os.Getenv("SUPABASE_SERVICE_ROLE_KEY"),
+		SupabaseJWTSecret:      os.Getenv("SUPABASE_JWT_SECRET"),
 		DigitalOceanToken:      os.Getenv("DIGITALOCEAN_TOKEN"),
 		DigitalOceanImage:      env("DIGITALOCEAN_IMAGE", "ubuntu-24-04-x64"),
 		DigitalOceanSize:       env("DIGITALOCEAN_SIZE", "s-1vcpu-2gb"),
@@ -64,6 +70,8 @@ func Load() (Config, error) {
 		ClaudeInstallCommand:   os.Getenv("CLAUDE_INSTALL_CMD"),
 		PolarWebhookSecret:     os.Getenv("POLAR_WEBHOOK_SECRET"),
 		RazorpayWebhookSecret:  os.Getenv("RAZORPAY_WEBHOOK_SECRET"),
+		PolarCheckoutURL:       os.Getenv("POLAR_CHECKOUT_URL"),
+		RazorpayCheckoutURL:    os.Getenv("RAZORPAY_CHECKOUT_URL"),
 		DefaultTrialDays:       14,
 	}
 	if cfg.Port == "" {

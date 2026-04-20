@@ -32,6 +32,8 @@ Security/session layer:
 Runtime:
 
 - Codex/Claude subprocess wrapper.
+- Headless `codexnomad cloud-worker` for cloud droplets.
+- Cloud worker pairing metadata registration.
 - Unix PTY support.
 - Windows stdin/stdout fallback.
 - Terminal output streaming.
@@ -56,6 +58,21 @@ Docs:
 - Flutter/relay integration contract.
 - Happy Coder license preservation note.
 
+Backend:
+
+- Go WebSocket relay.
+- Short-lived signed relay tickets.
+- Pricing endpoint.
+- Billing checkout URL endpoint.
+- Supabase auth/trial metadata client.
+- Supabase JWT verification scaffold.
+- DigitalOcean droplet provisioner.
+- Tailscale one-time auth key creation.
+- Polar/Razorpay webhook handlers.
+- Cloud session state polling.
+- Stale droplet cleanup worker.
+- Dockerfile and Docker Compose.
+
 ## Verified
 
 Using a local Go toolchain:
@@ -67,12 +84,15 @@ Using a local Go toolchain:
 
 ## Not Built Yet
 
-- Relay server.
 - Flutter Android app.
-- Supabase auth/trial backend.
-- DigitalOcean provisioner.
-- Tailscale enrollment flow.
-- Polar/Razorpay subscription webhooks.
+- Dynamic Polar checkout creation using Polar API.
+- Dynamic Razorpay subscription checkout creation using Razorpay API.
+- Live deployment to Render/Fly.
+- Real Supabase project wiring.
+- Real DigitalOcean/Tailscale provisioning test with credentials.
+- LAN direct connection fallback.
+- Proper Codex/Claude approval and diff parsers.
+- Encrypted workspace snapshot upload/restore.
 - Production Signal double-ratchet implementation or security audit.
 
 ## Blunt Security Boundary

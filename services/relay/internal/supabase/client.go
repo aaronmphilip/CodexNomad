@@ -70,6 +70,18 @@ func (c *Client) UpdateCloudServer(ctx context.Context, id string, fields map[st
 	return c.do(ctx, http.MethodPatch, "/rest/v1/cloud_servers?id=eq."+url.QueryEscape(id), fields, nil, "")
 }
 
+func (c *Client) InsertCloudEvent(ctx context.Context, serverID, eventType, message string) error {
+	if !c.Enabled() {
+		return nil
+	}
+	body := map[string]any{
+		"server_id":  serverID,
+		"event_type": eventType,
+		"message":    message,
+	}
+	return c.do(ctx, http.MethodPost, "/rest/v1/cloud_events", body, nil, "")
+}
+
 func (c *Client) FindActiveCloudServer(ctx context.Context, userID string) (model.CloudServer, bool, error) {
 	if !c.Enabled() {
 		return model.CloudServer{}, false, nil
@@ -83,6 +95,33 @@ func (c *Client) FindActiveCloudServer(ctx context.Context, userID string) (mode
 		return model.CloudServer{}, false, nil
 	}
 	return rows[0], true, nil
+}
+
+func (c *Client) GetCloudServer(ctx context.Context, id string) (model.CloudServer, bool, error) {
+	if !c.Enabled() {
+		return model.CloudServer{}, false, nil
+	}
+	var rows []model.CloudServer
+	path := "/rest/v1/cloud_servers?select=*&id=eq." + url.QueryEscape(id) + "&limit=1"
+	if err := c.do(ctx, http.MethodGet, path, nil, &rows, ""); err != nil {
+		return model.CloudServer{}, false, err
+	}
+	if len(rows) == 0 {
+		return model.CloudServer{}, false, nil
+	}
+	return rows[0], true, nil
+}
+
+func (c *Client) ListStaleCreatingCloudServers(ctx context.Context, cutoff time.Time) ([]model.CloudServer, error) {
+	if !c.Enabled() {
+		return nil, nil
+	}
+	var rows []model.CloudServer
+	path := "/rest/v1/cloud_servers?select=*&status=eq.creating&created_at=lt." + url.QueryEscape(cutoff.UTC().Format(time.RFC3339)) + "&limit=25"
+	if err := c.do(ctx, http.MethodGet, path, nil, &rows, ""); err != nil {
+		return nil, err
+	}
+	return rows, nil
 }
 
 func (c *Client) InsertWebhookEvent(ctx context.Context, ev model.WebhookEvent) error {

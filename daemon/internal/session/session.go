@@ -35,6 +35,11 @@ type queuedEvent struct {
 	data any
 }
 
+type RunOptions struct {
+	Headless bool
+	ServerID string
+}
+
 type secureSender struct {
 	mu        sync.Mutex
 	sessionID string
@@ -48,6 +53,22 @@ type secureSender struct {
 }
 
 func Run(parent context.Context, cfg config.Config, agent Agent, args []string) error {
+	return run(parent, cfg, agent, args, RunOptions{})
+}
+
+func RunCloudWorker(parent context.Context, cfg config.Config, args []string) error {
+	agent := Agent(os.Getenv("CODEXNOMAD_AGENT"))
+	if agent == "" {
+		agent = AgentCodex
+	}
+	if len(args) > 0 && (args[0] == string(AgentCodex) || args[0] == string(AgentClaude)) {
+		agent = Agent(args[0])
+		args = args[1:]
+	}
+	return run(parent, cfg, agent, args, RunOptions{Headless: true, ServerID: cfg.CloudServerID})
+}
+
+func run(parent context.Context, cfg config.Config, agent Agent, args []string, opts RunOptions) error {
 	ctx, cancel := context.WithCancel(parent)
 	defer cancel()
 
@@ -98,11 +119,6 @@ func Run(parent context.Context, cfg config.Config, agent Agent, args []string) 
 		relayErr <- err
 	}()
 
-	expires := time.Now().UTC().Add(10 * time.Minute)
-	if err := printPairingQR(cfg, agent, sessionID, publicKey, expires); err != nil {
-		return err
-	}
-
 	resolver := cliwrap.Resolver{CodexBin: cfg.CodexBin, ClaudeBin: cfg.ClaudeBin}
 	cmd, err := resolver.Command(cliwrap.Agent(agent), args)
 	if err != nil {
@@ -113,6 +129,25 @@ func Run(parent context.Context, cfg config.Config, agent Agent, args []string) 
 		"CODEXNOMAD_SESSION_ID="+sessionID,
 		"CODEXNOMAD_MODE="+cfg.Mode,
 	)
+
+	pairingTTL := 10 * time.Minute
+	if opts.Headless {
+		pairingTTL = 45 * time.Minute
+	}
+	expires := time.Now().UTC().Add(pairingTTL)
+	pairingPayload := makePairingPayload(cfg, agent, sessionID, publicKey, expires)
+	if opts.Headless {
+		if err := registerCloudSession(ctx, cfg, pairingPayload); err != nil {
+			logger.Printf("cloud session registration failed: %v", err)
+			if cfg.RequireRelay {
+				return err
+			}
+		}
+	} else {
+		if err := printPairingQR(pairingPayload); err != nil {
+			return err
+		}
+	}
 
 	proc, err := terminal.Start(ctx, cmd, func(chunk []byte) {
 		_, _ = os.Stdout.Write(chunk)
@@ -135,6 +170,7 @@ func Run(parent context.Context, cfg config.Config, agent Agent, args []string) 
 		"session_id": sessionID,
 		"agent":      agent,
 		"mode":       cfg.Mode,
+		"server_id":  opts.ServerID,
 		"cwd":        workdir,
 		"relay_url":  cfg.RelayURL,
 		"cloud":      cloudInfo(),
@@ -154,8 +190,8 @@ func Run(parent context.Context, cfg config.Config, agent Agent, args []string) 
 	return err
 }
 
-func printPairingQR(cfg config.Config, agent Agent, sessionID, publicKey string, expires time.Time) error {
-	payload := qr.PairingPayload{
+func makePairingPayload(cfg config.Config, agent Agent, sessionID, publicKey string, expires time.Time) qr.PairingPayload {
+	return qr.PairingPayload{
 		Version:   1,
 		SessionID: sessionID,
 		Agent:     string(agent),
@@ -165,6 +201,9 @@ func printPairingQR(cfg config.Config, agent Agent, sessionID, publicKey string,
 		CreatedAt: time.Now().UTC().Format(time.RFC3339),
 		ExpiresAt: expires.Format(time.RFC3339),
 	}
+}
+
+func printPairingQR(payload qr.PairingPayload) error {
 	content, err := qr.EncodePayload(payload)
 	if err != nil {
 		return err
@@ -172,7 +211,7 @@ func printPairingQR(cfg config.Config, agent Agent, sessionID, publicKey string,
 	fmt.Println()
 	fmt.Println("Codex Nomad session ready")
 	fmt.Println("Scan this QR in the Android app. Pairing expires in 10 minutes.")
-	fmt.Printf("Session: %s  Agent: %s  Mode: %s\n", sessionID, agent, cfg.Mode)
+	fmt.Printf("Session: %s  Agent: %s  Mode: %s\n", payload.SessionID, payload.Agent, payload.Mode)
 	return qr.RenderTerminal(os.Stdout, content)
 }
 

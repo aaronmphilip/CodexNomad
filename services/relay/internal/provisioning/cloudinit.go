@@ -25,7 +25,7 @@ apt-get install -y ca-certificates curl git tar unzip nodejs npm
 curl -fsSL https://tailscale.com/install.sh | sh
 tailscale up --auth-key=%q --hostname=%q --advertise-tags=%q
 
-mkdir -p /opt/codexnomad /workspace
+mkdir -p /opt/codexnomad /workspace/project
 arch="$(uname -m)"
 case "$arch" in
   x86_64) cn_arch="amd64" ;;
@@ -49,11 +49,15 @@ Wants=network-online.target tailscaled.service
 [Service]
 Type=simple
 Environment=CODEXNOMAD_MODE=cloud
+Environment=CODEXNOMAD_AGENT=%s
+Environment=CODEXNOMAD_CLOUD_SERVER_ID=%s
+Environment=CODEXNOMAD_CLOUD_REGISTER_URL=%s/v1/cloud/nodes/register
+Environment=CODEXNOMAD_CLOUD_REGISTER_TOKEN=%s
 Environment=CODEXNOMAD_RELAY_URL=%s
 Environment=CODEXNOMAD_REQUIRE_RELAY=1
 Environment=CODEXNOMAD_RELAY_TOKEN=%s
-WorkingDirectory=/workspace
-ExecStart=/usr/local/bin/codexnomad start
+WorkingDirectory=/workspace/project
+ExecStart=/usr/local/bin/codexnomad cloud-worker
 Restart=always
 RestartSec=3
 
@@ -69,7 +73,7 @@ curl -fsSL -X POST "%s/v1/cloud/nodes/register" \
   -H "X-CodexNomad-Token: %s" \
   -d '{"server_id":"%s","status":"ready","tailscale_hostname":"%s"}' || true
 `, tailscaleAuthKey, server.TailscaleHostname, strings.Join(cfg.TailscaleTags, ","), cfg.ReleaseBaseURL,
-		codexInstall, claudeInstall, repoClone, cfg.DaemonRelayURL, cfg.RelaySharedToken,
+		codexInstall, claudeInstall, repoClone, server.Agent, server.ID, cfg.CloudBootstrapURL, cfg.AdminSharedToken, cfg.DaemonRelayURL, cfg.RelaySharedToken,
 		cfg.CloudBootstrapURL, cfg.AdminSharedToken, server.ID, server.TailscaleHostname)
 }
 

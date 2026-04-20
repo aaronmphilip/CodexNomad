@@ -86,3 +86,32 @@ func CreateDroplet(ctx context.Context, cfg config.Config, name, region, userDat
 	}
 	return d, nil
 }
+
+func DeleteDroplet(ctx context.Context, cfg config.Config, dropletID int64) error {
+	if dropletID == 0 {
+		return nil
+	}
+	if cfg.DigitalOceanToken == "" {
+		return fmt.Errorf("DIGITALOCEAN_TOKEN is required to delete droplets")
+	}
+	url := fmt.Sprintf("https://api.digitalocean.com/v2/droplets/%d", dropletID)
+	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, url, nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Authorization", "Bearer "+cfg.DigitalOceanToken)
+	client := &http.Client{Timeout: 20 * time.Second}
+	res, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer res.Body.Close()
+	if res.StatusCode == http.StatusNotFound || res.StatusCode == http.StatusNoContent {
+		return nil
+	}
+	payload, _ := io.ReadAll(io.LimitReader(res.Body, 1<<20))
+	if res.StatusCode < 200 || res.StatusCode >= 300 {
+		return fmt.Errorf("digitalocean droplet delete failed: %s: %s", res.Status, strings.TrimSpace(string(payload)))
+	}
+	return nil
+}

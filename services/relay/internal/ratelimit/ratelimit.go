@@ -9,10 +9,10 @@ import (
 )
 
 type Limiter struct {
-	mu      sync.Mutex
-	window  time.Time
-	counts  map[string]int
-	limit   int
+	mu     sync.Mutex
+	window time.Time
+	counts map[string]int
+	limit  int
 }
 
 func New(limitPerMinute int) *Limiter {

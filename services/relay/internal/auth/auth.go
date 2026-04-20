@@ -8,7 +8,7 @@ import (
 
 func CheckSharedToken(r *http.Request, expected string) bool {
 	if expected == "" {
-		return true
+		return false
 	}
 	candidates := []string{
 		r.Header.Get("X-CodexNomad-Token"),

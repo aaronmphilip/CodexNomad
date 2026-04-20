@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/codexnomad/codexnomad/services/relay/internal/auth"
 	"github.com/codexnomad/codexnomad/services/relay/internal/config"
 	"nhooyr.io/websocket"
 )
@@ -47,7 +48,13 @@ func (h *Hub) Handle(w http.ResponseWriter, r *http.Request) {
 		log.Printf("ws accept failed: %v", err)
 		return
 	}
+	ticket, hasTicket := h.ticketFromRequest(r)
 	c := &client{hub: h, conn: conn, send: make(chan []byte, 256)}
+	if hasTicket {
+		c.sessionID = ticket.SessionID
+		c.role = ticket.Role
+		c.hub.register(c)
+	}
 	ctx := r.Context()
 	defer c.close()
 
@@ -76,12 +83,34 @@ func (c *client) readLoop(ctx context.Context) {
 		if msg.SessionID != c.sessionID {
 			continue
 		}
+		if c.role != "" && msg.Role != "" && msg.Role != c.role {
+			continue
+		}
 		if msg.Type == "ping" {
 			c.writeJSON(WireMessage{Type: "pong", SessionID: c.sessionID, Role: "relay"})
 			continue
 		}
 		c.hub.forward(c, raw)
 	}
+}
+
+func (h *Hub) ticketFromRequest(r *http.Request) (auth.RelayTicket, bool) {
+	raw := r.URL.Query().Get("ticket")
+	if raw == "" {
+		raw = r.Header.Get("X-CodexNomad-Relay-Ticket")
+	}
+	if raw == "" {
+		raw = auth.BearerToken(r.Header.Get("Authorization"))
+	}
+	if raw == "" || h.cfg.RelayTicketSecret == "" {
+		return auth.RelayTicket{}, false
+	}
+	t, err := auth.VerifyRelayTicket(raw, h.cfg.RelayTicketSecret)
+	if err != nil {
+		log.Printf("invalid relay ticket: %v", err)
+		return auth.RelayTicket{}, false
+	}
+	return t, true
 }
 
 func (c *client) writeLoop(ctx context.Context) {

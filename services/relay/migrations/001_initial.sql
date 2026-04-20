@@ -15,6 +15,8 @@ create table if not exists public.cloud_servers (
   id text primary key,
   user_id text not null,
   agent text not null default 'codex',
+  daemon_session_id text,
+  pairing_payload jsonb,
   region text not null,
   country text,
   status text not null default 'creating',
@@ -51,10 +53,19 @@ create table if not exists public.webhook_events (
   created_at timestamptz not null default now()
 );
 
+create table if not exists public.cloud_events (
+  id bigserial primary key,
+  server_id text references public.cloud_servers(id) on delete cascade,
+  event_type text not null,
+  message text,
+  created_at timestamptz not null default now()
+);
+
 alter table public.subscriptions enable row level security;
 alter table public.cloud_servers enable row level security;
 alter table public.session_mappings enable row level security;
 alter table public.webhook_events enable row level security;
+alter table public.cloud_events enable row level security;
 
 create policy "users read own subscription" on public.subscriptions
   for select using (auth.uid()::text = user_id);

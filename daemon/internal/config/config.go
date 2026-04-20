@@ -17,6 +17,7 @@ const (
 
 type Config struct {
 	RelayURL     string
+	RelayToken   string
 	ConfigDir    string
 	RuntimeDir   string
 	LogDir       string
@@ -38,6 +39,7 @@ func Load() (Config, error) {
 
 	cfg := Config{
 		RelayURL:     env("CODEXNOMAD_RELAY_URL", DefaultRelayURL),
+		RelayToken:   os.Getenv("CODEXNOMAD_RELAY_TOKEN"),
 		ConfigDir:    configDir,
 		RuntimeDir:   runtimeDir,
 		LogDir:       filepath.Join(configDir, "logs"),

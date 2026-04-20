@@ -33,7 +33,7 @@ type Envelope struct {
 type PlainMessage struct {
 	Type      string          `json:"type"`
 	SessionID string          `json:"sid"`
-	SentAt     time.Time       `json:"sent_at"`
+	SentAt    time.Time       `json:"sent_at"`
 	Data      json.RawMessage `json:"data,omitempty"`
 }
 

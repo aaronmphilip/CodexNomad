@@ -54,12 +54,15 @@ After that, the Android app controls the cloud session exactly like local mode, 
 
 ```sh
 export CODEXNOMAD_RELAY_URL=wss://relay.codexnomad.pro/v1/relay
+export CODEXNOMAD_RELAY_TOKEN=shared-relay-token
 export CODEXNOMAD_REQUIRE_RELAY=1
 export CODEXNOMAD_CODEX_BIN=codex
 export CODEXNOMAD_CLAUDE_BIN=claude
 ```
 
 ## Flutter app and relay integration
+
+The backend/relay service lives in `services/relay`; deployment and webhook setup are documented in `docs/backend.md`.
 
 The QR code contains:
 

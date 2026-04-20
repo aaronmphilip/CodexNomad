@@ -23,15 +23,17 @@ type Client struct {
 	URL       string
 	SessionID string
 	PublicKey string
+	Token     string
 	Logger    *log.Logger
 }
 
 func (c Client) Run(ctx context.Context, inbound chan<- WireMessage, outbound <-chan WireMessage) error {
-	conn, _, err := websocket.Dial(ctx, c.URL, &websocket.DialOptions{
-		HTTPHeader: http.Header{
-			"User-Agent": []string{"codexnomad-daemon/0.1"},
-		},
-	})
+	headers := http.Header{"User-Agent": []string{"codexnomad-daemon/0.1"}}
+	if c.Token != "" {
+		headers.Set("Authorization", "Bearer "+c.Token)
+		headers.Set("X-CodexNomad-Relay-Token", c.Token)
+	}
+	conn, _, err := websocket.Dial(ctx, c.URL, &websocket.DialOptions{HTTPHeader: headers})
 	if err != nil {
 		return err
 	}

@@ -84,6 +84,7 @@ func Run(parent context.Context, cfg config.Config, agent Agent, args []string) 
 		URL:       cfg.RelayURL,
 		SessionID: sessionID,
 		PublicKey: publicKey,
+		Token:     cfg.RelayToken,
 		Logger:    logger.Logger,
 	}
 	go func() {

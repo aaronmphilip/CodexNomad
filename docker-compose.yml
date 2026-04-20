@@ -1,0 +1,35 @@
+services:
+  relay:
+    build:
+      context: .
+      dockerfile: services/relay/Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      PORT: "8080"
+      PUBLIC_BASE_URL: "http://localhost:8080"
+      CODEXNOMAD_RELAY_URL: "ws://localhost:8080/v1/relay"
+      CODEXNOMAD_RELEASE_BASE: "https://codexnomad.pro/releases/latest"
+
+      # Set these in .env for real cloud/billing flows.
+      RELAY_SHARED_TOKEN: "${RELAY_SHARED_TOKEN:-}"
+      APP_SHARED_TOKEN: "${APP_SHARED_TOKEN:-}"
+      ADMIN_SHARED_TOKEN: "${ADMIN_SHARED_TOKEN:-}"
+      SUPABASE_URL: "${SUPABASE_URL:-}"
+      SUPABASE_SERVICE_ROLE_KEY: "${SUPABASE_SERVICE_ROLE_KEY:-}"
+      DIGITALOCEAN_TOKEN: "${DIGITALOCEAN_TOKEN:-}"
+      DIGITALOCEAN_IMAGE: "${DIGITALOCEAN_IMAGE:-ubuntu-24-04-x64}"
+      DIGITALOCEAN_SIZE: "${DIGITALOCEAN_SIZE:-s-1vcpu-2gb}"
+      DIGITALOCEAN_SSH_KEYS: "${DIGITALOCEAN_SSH_KEYS:-}"
+      TAILSCALE_TAILNET: "${TAILSCALE_TAILNET:-}"
+      TAILSCALE_API_KEY: "${TAILSCALE_API_KEY:-}"
+      TAILSCALE_TAGS: "${TAILSCALE_TAGS:-tag:codexnomad-cloud}"
+      POLAR_WEBHOOK_SECRET: "${POLAR_WEBHOOK_SECRET:-}"
+      RAZORPAY_WEBHOOK_SECRET: "${RAZORPAY_WEBHOOK_SECRET:-}"
+      CODEX_INSTALL_CMD: "${CODEX_INSTALL_CMD:-npm install -g @openai/codex}"
+      CLAUDE_INSTALL_CMD: "${CLAUDE_INSTALL_CMD:-npm install -g @anthropic-ai/claude-code}"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 5

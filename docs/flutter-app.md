@@ -26,7 +26,11 @@ The Supabase project URL for your project ref is:
 https://iyuzdvioufyaoncyyqhq.supabase.co
 ```
 
-You still need to copy the anon key from Supabase dashboard -> Project Settings -> API.
+The current anon key for local Flutter builds is:
+
+```txt
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml5dXpkdmlvdWZ5YW9uY3l5cWhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2OTExNzIsImV4cCI6MjA5MjI2NzE3Mn0.f7dpD0gEzxbIXRyXKPAQERID1r-Ug8-n1c6wjQqfv24
+```
 
 Because the service-role key was pasted into chat, rotate it before production.
 
@@ -77,7 +81,7 @@ Build/run app:
 ```sh
 flutter run \
   --dart-define=SUPABASE_URL=https://iyuzdvioufyaoncyyqhq.supabase.co \
-  --dart-define=SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_KEY \
+  --dart-define=SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml5dXpkdmlvdWZ5YW9uY3l5cWhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2OTExNzIsImV4cCI6MjA5MjI2NzE3Mn0.f7dpD0gEzxbIXRyXKPAQERID1r-Ug8-n1c6wjQqfv24 \
   --dart-define=CODEXNOMAD_BACKEND_URL=http://10.0.2.2:8080
 ```
 

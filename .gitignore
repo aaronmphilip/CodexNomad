@@ -4,3 +4,10 @@ daemon/daemon
 daemon/daemon.exe
 *.log
 vendor/happy/
+.env
+.env.*
+!*.env.example
+apps/android/flutter-app/.dart_tool/
+apps/android/flutter-app/build/
+apps/android/flutter-app/.flutter-plugins*
+apps/android/flutter-app/pubspec.lock

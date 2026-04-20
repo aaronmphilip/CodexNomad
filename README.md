@@ -69,6 +69,7 @@ export CODEXNOMAD_CLAUDE_BIN=claude
 ## Flutter app and relay integration
 
 The backend/relay service lives in `services/relay`; deployment and webhook setup are documented in `docs/backend.md`.
+The Android app source lives in `apps/android/flutter-app`; build and pairing setup are documented in `docs/flutter-app.md`.
 
 The QR code contains:
 

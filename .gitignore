@@ -1,0 +1,6 @@
+.tools/
+bin/
+daemon/daemon
+daemon/daemon.exe
+*.log
+vendor/happy/

@@ -1,5 +1,5 @@
 param(
-  [ValidateSet('codex', 'claude')]
+  [ValidateSet('codex', 'claude', 'demo')]
   [string]$Agent = 'codex',
 
   [switch]$RunApp,
@@ -14,6 +14,46 @@ $ErrorActionPreference = 'Stop'
 function New-QuotedCommand {
   param([string[]]$Lines)
   return ($Lines -join "`r`n")
+}
+
+function ConvertTo-PSStringLiteral {
+  param([string]$Value)
+  return "'" + $Value.Replace("'", "''") + "'"
+}
+
+function Resolve-AgentBinary {
+  param([string]$AgentName)
+
+  if ($AgentName -eq 'demo') {
+    $powershell = Get-Command powershell.exe -ErrorAction Stop
+    return $powershell.Source
+  }
+
+  $envName = if ($AgentName -eq 'claude') { 'CODEXNOMAD_CLAUDE_BIN' } else { 'CODEXNOMAD_CODEX_BIN' }
+  $override = [Environment]::GetEnvironmentVariable($envName)
+  if (-not [string]::IsNullOrWhiteSpace($override)) {
+    return $override
+  }
+
+  $cmdName = if ($AgentName -eq 'claude') { 'claude' } else { 'codex' }
+  $cmd = Get-Command $cmdName -ErrorAction SilentlyContinue | Select-Object -First 1
+  if ($cmd) {
+    return $cmd.Source
+  }
+
+  $whereResult = & where.exe $cmdName 2>$null | Select-Object -First 1
+  if (-not [string]::IsNullOrWhiteSpace($whereResult)) {
+    return $whereResult
+  }
+
+  if ($AgentName -eq 'claude') {
+    $claudeCmd = Join-Path $env:APPDATA 'npm\claude.cmd'
+    if (Test-Path $claudeCmd) {
+      return $claudeCmd
+    }
+  }
+
+  return $null
 }
 
 $repo = Resolve-Path (Join-Path $PSScriptRoot '..\..')
@@ -56,10 +96,9 @@ if (-not (Test-Path $daemonExe)) {
   throw "Daemon binary missing: $daemonExe"
 }
 
-$agentCmd = if ($Agent -eq 'claude') { 'claude' } else { 'codex' }
-$agentOverride = if ($Agent -eq 'claude') { $env:CODEXNOMAD_CLAUDE_BIN } else { $env:CODEXNOMAD_CODEX_BIN }
-if ([string]::IsNullOrWhiteSpace($agentOverride) -and -not (Get-Command $agentCmd -ErrorAction SilentlyContinue)) {
-  throw "Could not find '$agentCmd' on PATH. Install the official CLI first, or set CODEXNOMAD_$($Agent.ToUpper())_BIN to the executable path."
+$agentBin = Resolve-AgentBinary $Agent
+if ([string]::IsNullOrWhiteSpace($agentBin)) {
+  throw "Could not find '$Agent' on PATH. Install the official CLI, set CODEXNOMAD_$($Agent.ToUpper())_BIN, or run with -Agent demo to test QR/E2EE without a real agent."
 }
 
 $relayLines = @(
@@ -75,13 +114,21 @@ $relayLines = @(
 )
 $relayCommand = New-QuotedCommand $relayLines
 
+$daemonAgent = if ($Agent -eq 'claude') { 'claude' } else { 'codex' }
+$daemonArgs = ''
+if ($Agent -eq 'demo') {
+  $daemonArgs = "-NoLogo -NoProfile -NoExit -Command `"Write-Host 'Codex Nomad demo agent ready'; Write-Host 'Type in the mobile app and watch it arrive here.'`""
+}
+
 $daemonLines = @(
   "`$Host.UI.RawUI.WindowTitle = 'Codex Nomad $Agent Session'",
   "`$env:CODEXNOMAD_RELAY_URL = '$relayURL'",
   "`$env:CODEXNOMAD_REQUIRE_RELAY = '1'",
+  "`$env:CODEXNOMAD_CODEX_BIN = $(ConvertTo-PSStringLiteral $agentBin)",
+  "`$env:CODEXNOMAD_CLAUDE_BIN = $(ConvertTo-PSStringLiteral $agentBin)",
   "Write-Host 'Starting Codex Nomad $Agent session through $relayURL'",
   "Write-Host 'Scan the QR from the Android app.'",
-  "& '$daemonExe' $Agent"
+  "& '$daemonExe' $daemonAgent $daemonArgs"
 )
 $daemonCommand = New-QuotedCommand $daemonLines
 

@@ -4,6 +4,14 @@ These scripts are for Windows local PC-on testing with a real Android phone.
 
 Fast path:
 
+Run this once if Android Studio cannot build `sodium` because it cannot find `bash.exe` or `make.exe`:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\dev\configure-android-studio-env-windows.ps1
+```
+
+Then close Android Studio completely and reopen it.
+
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\dev\start-local-test-windows.ps1
 ```
@@ -18,6 +26,12 @@ To also run the Flutter app from the script when a wireless Android device is al
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\dev\start-local-test-windows.ps1 -RunApp
+```
+
+To test QR/E2EE without the official Codex CLI installed:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\dev\start-local-test-windows.ps1 -Agent demo
 ```
 
 Manual path:

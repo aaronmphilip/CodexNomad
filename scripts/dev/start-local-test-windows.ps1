@@ -5,6 +5,7 @@ param(
   [switch]$RunApp,
   [switch]$SkipBuild,
   [switch]$DryRun,
+  [switch]$NoAdbReverse,
 
   [int]$Port = 8080
 )
@@ -56,6 +57,32 @@ function Resolve-AgentBinary {
   return $null
 }
 
+function Resolve-Adb {
+  $adb = Get-Command adb -ErrorAction SilentlyContinue | Select-Object -First 1
+  if ($adb) {
+    return $adb.Source
+  }
+  $sdkAdb = Join-Path $env:LOCALAPPDATA 'Android\Sdk\platform-tools\adb.exe'
+  if (Test-Path $sdkAdb) {
+    return $sdkAdb
+  }
+  return $null
+}
+
+function Get-ConnectedAdbDevice {
+  param([string]$Adb)
+  if ([string]::IsNullOrWhiteSpace($Adb)) {
+    return $null
+  }
+  $devices = & $Adb devices 2>$null
+  foreach ($line in $devices) {
+    if ($line -match '^(\S+)\s+device$') {
+      return $Matches[1]
+    }
+  }
+  return $null
+}
+
 $repo = Resolve-Path (Join-Path $PSScriptRoot '..\..')
 $binDir = Join-Path $repo 'bin'
 $relayExe = Join-Path $binDir 'codexnomad-relay.exe'
@@ -70,8 +97,21 @@ if ([string]::IsNullOrWhiteSpace($localIP)) {
   throw 'Could not detect a LAN IPv4 address. Connect Wi-Fi/Ethernet and retry.'
 }
 
-$relayURL = "ws://$localIP`:$Port/v1/relay"
-$backendURL = "http://$localIP`:$Port"
+$adb = Resolve-Adb
+$adbDevice = Get-ConnectedAdbDevice $adb
+$usingAdbReverse = $false
+$relayHost = $localIP
+
+if (-not $NoAdbReverse -and -not [string]::IsNullOrWhiteSpace($adbDevice)) {
+  if (-not $DryRun) {
+    & $adb reverse "tcp:$Port" "tcp:$Port" | Out-Null
+  }
+  $usingAdbReverse = $true
+  $relayHost = '127.0.0.1'
+}
+
+$relayURL = "ws://$relayHost`:$Port/v1/relay"
+$backendURL = "http://$relayHost`:$Port"
 $leakMarker = 'E2EE_TEST_SECRET_12345'
 
 if ($DryRun) {
@@ -80,6 +120,8 @@ if ($DryRun) {
   Write-Host "Backend URL: $backendURL"
   Write-Host "Agent: $Agent"
   Write-Host "Run app: $RunApp"
+  Write-Host "ADB reverse: $usingAdbReverse"
+  Write-Host "ADB device: $adbDevice"
   Write-Host "Dry run only. No windows started."
   exit 0
 }
@@ -197,3 +239,8 @@ Write-Host '4. If relay prints POSSIBLE PLAINTEXT LEAK, encryption is broken. If
 Write-Host ''
 Write-Host "Relay URL:   $relayURL"
 Write-Host "Backend URL: $backendURL"
+if ($usingAdbReverse) {
+  Write-Host "ADB reverse: enabled for device $adbDevice"
+} else {
+  Write-Host "ADB reverse: disabled; phone must reach $localIP over Wi-Fi/LAN"
+}

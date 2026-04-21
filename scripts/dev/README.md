@@ -22,6 +22,14 @@ That starts the local relay and a Codex session in separate PowerShell windows. 
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\dev\start-local-test-windows.ps1 -Agent claude
 ```
 
+When an Android device is connected through Android Studio/ADB, the script automatically runs `adb reverse tcp:8080 tcp:8080` and puts `ws://127.0.0.1:8080/v1/relay` into the QR. This avoids Windows Firewall and Wi-Fi isolation during local testing.
+
+To force old LAN mode:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\dev\start-local-test-windows.ps1 -NoAdbReverse
+```
+
 To also run the Flutter app from the script when a wireless Android device is already connected:
 
 ```powershell

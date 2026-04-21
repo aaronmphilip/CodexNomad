@@ -40,13 +40,20 @@ func RenderTerminal(w io.Writer, content string) error {
 		var b strings.Builder
 		for _, dark := range row {
 			if dark {
-				b.WriteString("\x1b[40m  \x1b[0m")
+				b.WriteString("██")
 			} else {
-				b.WriteString("\x1b[47m  \x1b[0m")
+				b.WriteString("  ")
 			}
 		}
 		fmt.Fprintln(w, b.String())
 	}
 	fmt.Fprintln(w)
 	return nil
+}
+
+func WritePNG(content, path string, size int) error {
+	if size <= 0 {
+		size = 768
+	}
+	return qrcode.WriteFile(content, qrcode.Medium, size, path)
 }

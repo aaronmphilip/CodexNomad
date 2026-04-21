@@ -124,6 +124,7 @@ $daemonLines = @(
   "`$Host.UI.RawUI.WindowTitle = 'Codex Nomad $Agent Session'",
   "`$env:CODEXNOMAD_RELAY_URL = '$relayURL'",
   "`$env:CODEXNOMAD_REQUIRE_RELAY = '1'",
+  "`$env:CODEXNOMAD_OPEN_QR = '1'",
   "`$env:CODEXNOMAD_CODEX_BIN = $(ConvertTo-PSStringLiteral $agentBin)",
   "`$env:CODEXNOMAD_CLAUDE_BIN = $(ConvertTo-PSStringLiteral $agentBin)",
   "Write-Host 'Starting Codex Nomad $Agent session through $relayURL'",

@@ -10,6 +10,8 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
+	"runtime"
 	"sync"
 	"time"
 
@@ -208,11 +210,34 @@ func printPairingQR(payload qr.PairingPayload) error {
 	if err != nil {
 		return err
 	}
+	pngPath := filepath.Join(os.TempDir(), "codexnomad-"+payload.SessionID+".png")
+	if err := qr.WritePNG(content, pngPath, 768); err == nil {
+		fmt.Printf("QR image: %s\n", pngPath)
+		fmt.Println("If the terminal QR is not scannable, scan the QR image instead.")
+		if os.Getenv("CODEXNOMAD_OPEN_QR") == "1" {
+			_ = openFile(pngPath)
+		}
+	} else {
+		fmt.Printf("Could not write QR image: %v\n", err)
+	}
 	fmt.Println()
 	fmt.Println("Codex Nomad session ready")
 	fmt.Println("Scan this QR in the Android app. Pairing expires in 10 minutes.")
 	fmt.Printf("Session: %s  Agent: %s  Mode: %s\n", payload.SessionID, payload.Agent, payload.Mode)
 	return qr.RenderTerminal(os.Stdout, content)
+}
+
+func openFile(path string) error {
+	var cmd *exec.Cmd
+	switch runtime.GOOS {
+	case "windows":
+		cmd = exec.Command("rundll32", "url.dll,FileProtocolHandler", path)
+	case "darwin":
+		cmd = exec.Command("open", path)
+	default:
+		cmd = exec.Command("xdg-open", path)
+	}
+	return cmd.Start()
 }
 
 func handleInbound(ctx context.Context, inbound <-chan relay.WireMessage, outbound chan<- relay.WireMessage, sender *secureSender, proc *terminal.Process, root string, expires time.Time, logger *log.Logger) {

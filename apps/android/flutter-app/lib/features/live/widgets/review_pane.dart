@@ -129,7 +129,7 @@ class _AttentionReviewCard extends StatelessWidget {
                 children: [
                   Expanded(
                     child: FilledButton.icon(
-                      onPressed: () => controller.approve(),
+                      onPressed: () => controller.approve(item.id),
                       icon: const Icon(PhosphorIconsRegular.checkCircle),
                       label: const Text('Approve once'),
                     ),
@@ -137,7 +137,7 @@ class _AttentionReviewCard extends StatelessWidget {
                   const SizedBox(width: 8),
                   Expanded(
                     child: OutlinedButton.icon(
-                      onPressed: () => controller.reject(),
+                      onPressed: () => controller.reject(item.id),
                       icon: const Icon(PhosphorIconsRegular.xCircle),
                       label: const Text('Deny'),
                     ),

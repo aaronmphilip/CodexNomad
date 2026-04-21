@@ -330,7 +330,7 @@ class _MetricTile extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final color = active ? scheme.primary : scheme.onSurfaceVariant;
     return Container(
-      height: 86,
+      height: 96,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(8),

@@ -18,11 +18,15 @@ class NotificationService {
     const android = AndroidInitializationSettings('@mipmap/ic_launcher');
     const ios = DarwinInitializationSettings();
     const settings = InitializationSettings(android: android, iOS: ios);
-    await _local.initialize(settings: settings);
-    await _local
-        .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
-        ?.requestNotificationsPermission();
+    try {
+      await _local.initialize(settings: settings);
+      await _local
+          .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>()
+          ?.requestNotificationsPermission();
+    } catch (_) {
+      // Local notifications are best-effort outside a packaged mobile app.
+    }
     _initialized = true;
   }
 
@@ -43,14 +47,18 @@ class NotificationService {
       presentBadge: true,
       presentSound: true,
     );
-    await _local.show(
-      id: item.id.hashCode & 0x7fffffff,
-      title: item.title,
-      body: _safeBody(item),
-      notificationDetails:
-          const NotificationDetails(android: android, iOS: ios),
-      payload: item.id,
-    );
+    try {
+      await _local.show(
+        id: item.id.hashCode & 0x7fffffff,
+        title: item.title,
+        body: _safeBody(item),
+        notificationDetails:
+            const NotificationDetails(android: android, iOS: ios),
+        payload: item.id,
+      );
+    } catch (_) {
+      // The inbox still updates even if the platform notification bridge fails.
+    }
   }
 
   bool _shouldNotify(AttentionKind kind) {

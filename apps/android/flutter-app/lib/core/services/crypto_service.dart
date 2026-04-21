@@ -127,7 +127,12 @@ class CryptoService {
     );
     final plain = await _cipher.decrypt(box, secretKey: key);
     final json = jsonDecode(utf8.decode(plain)) as Map<String, dynamic>;
+    final envelopeSessionId = envelope['sid'] as String? ?? '';
+    final plainSessionId = json['sid'] as String? ?? '';
     final plainSeq = _readInt(json['seq']);
+    if (envelopeSessionId.isNotEmpty && plainSessionId != envelopeSessionId) {
+      throw StateError('Encrypted session id does not match envelope.');
+    }
     if (plainSeq != envelopeSeq) {
       throw StateError('Encrypted sequence does not match envelope.');
     }
@@ -137,7 +142,7 @@ class CryptoService {
     _lastPeerSeq = envelopeSeq;
     return EncryptedMessage(
       type: json['type'] as String,
-      sessionId: json['sid'] as String,
+      sessionId: plainSessionId,
       data: (json['data'] as Map?)?.cast<String, dynamic>() ?? {},
     );
   }

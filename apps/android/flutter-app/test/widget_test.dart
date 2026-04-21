@@ -6,15 +6,20 @@
 // tree, read text, and verify that the values of widget properties are correct.
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:codex_nomad/app.dart';
 
 void main() {
   testWidgets('Codex Nomad app builds', (WidgetTester tester) async {
-    await tester.pumpWidget(const CodexNomadApp());
+    await tester.pumpWidget(
+      const ProviderScope(
+        child: CodexNomadApp(),
+      ),
+    );
 
     await tester.pump();
 
-    expect(find.text('Codex Nomad'), findsOneWidget);
+    expect(find.text('Agent Inbox'), findsOneWidget);
   });
 }

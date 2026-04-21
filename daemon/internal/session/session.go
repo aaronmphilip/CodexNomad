@@ -377,11 +377,32 @@ func handleCiphertext(msg relay.WireMessage, sender *secureSender, proc *termina
 		}
 		return proc.Write([]byte(p.Text))
 	case "interrupt":
-		return proc.Interrupt()
+		id := commandID(plain.Data)
+		if err := proc.Interrupt(); err != nil {
+			return err
+		}
+		sender.Send("permission_resolved", map[string]any{
+			"id":     id,
+			"action": "interrupt",
+		}, false)
 	case "approve":
-		return proc.Write([]byte("y\n"))
+		id := commandID(plain.Data)
+		if err := proc.Write([]byte("y\n")); err != nil {
+			return err
+		}
+		sender.Send("permission_resolved", map[string]any{
+			"id":     id,
+			"action": "approve_once",
+		}, false)
 	case "reject":
-		return proc.Write([]byte("n\n"))
+		id := commandID(plain.Data)
+		if err := proc.Write([]byte("n\n")); err != nil {
+			return err
+		}
+		sender.Send("permission_resolved", map[string]any{
+			"id":     id,
+			"action": "reject",
+		}, false)
 	case "file_list":
 		snap, err := files.GitSnapshot(root)
 		if err != nil {
@@ -432,6 +453,17 @@ func handleCiphertext(msg relay.WireMessage, sender *secureSender, proc *termina
 		return errors.New("unsupported mobile command " + plain.Type)
 	}
 	return nil
+}
+
+func commandID(raw json.RawMessage) string {
+	var p struct {
+		ID string `json:"id"`
+	}
+	if len(raw) == 0 {
+		return ""
+	}
+	_ = json.Unmarshal(raw, &p)
+	return p.ID
 }
 
 func (s *secureSender) SetPeer(encoded, deviceID string) error {

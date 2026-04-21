@@ -87,6 +87,7 @@ codexnomad codex [args...]
 codexnomad claude [args...]
 codexnomad status
 codexnomad logs
+codexnomad doctor [codex|claude|all]
 codexnomad devices
 codexnomad devices revoke DEVICE_ID
 ```

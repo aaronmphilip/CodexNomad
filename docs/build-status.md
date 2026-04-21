@@ -33,6 +33,7 @@ Security/session layer:
 - Trusted mobile device registry stored on the local machine, with list/revoke commands and per-command authorization checks.
 - Encrypted envelope sequence binding and inbound replay checks on daemon and mobile.
 - Relay contract where relay sees session id and ciphertext only.
+- Local readiness doctor for machine identity, writable runtime state, relay health, trusted phone state, and Codex/Claude CLI availability.
 
 Runtime:
 
@@ -43,6 +44,7 @@ Runtime:
 - Windows stdin/stdout fallback.
 - Terminal output streaming.
 - Mobile command handling for stdin, interrupt, approve, reject, file list, file read, file write, and ping.
+- Permission resolution events after approve/reject/interrupt so mobile review cards clear when a decision is sent.
 
 Files:
 
@@ -99,6 +101,7 @@ Using the local toolchain:
 - daemon `go test ./...`
 - relay `go test ./...`
 - Flutter `flutter analyze --no-pub`
+- Flutter `flutter test --no-pub`
 - Flutter `flutter build apk --debug --no-pub`
 - Flutter `flutter build appbundle --release --no-pub`
 

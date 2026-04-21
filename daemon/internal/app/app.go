@@ -29,6 +29,8 @@ Usage:
   codexnomad logs               Show recent daemon logs
   codexnomad devices            List trusted mobile devices
   codexnomad devices revoke ID  Revoke a trusted mobile device
+  codexnomad doctor [codex|claude|all]
+                              Check local setup readiness
 
 Environment:
   CODEXNOMAD_RELAY_URL          Relay WebSocket URL. Default: wss://relay.codexnomad.pro/v1/relay
@@ -77,6 +79,8 @@ func Run(args []string) error {
 		return service.Logs(cfg, os.Stdout, 160)
 	case "devices":
 		return handleDevices(cfg, rest)
+	case "doctor":
+		return handleDoctor(cfg, rest)
 	default:
 		return errors.New("unknown command " + cmd + "\n\n" + usage)
 	}

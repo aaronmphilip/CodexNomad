@@ -33,12 +33,10 @@ final authControllerProvider = ChangeNotifierProvider<AuthController>((ref) {
 
 final sessionControllerProvider =
     ChangeNotifierProvider<SessionController>((ref) {
-  final controller = SessionController(
+  return SessionController(
     ref.watch(appConfigProvider),
     ref.watch(notificationServiceProvider),
   );
-  ref.onDispose(controller.dispose);
-  return controller;
 });
 
 class AuthController extends ChangeNotifier {
@@ -145,9 +143,18 @@ class SessionController extends ChangeNotifier {
         .sendCommand('stdin', {'text': text.endsWith('\n') ? text : '$text\n'});
   }
 
-  Future<void> interrupt() => _relay.sendCommand('interrupt', {});
-  Future<void> approve() => _relay.sendCommand('approve', {});
-  Future<void> reject() => _relay.sendCommand('reject', {});
+  Future<void> interrupt([String? permissionId]) {
+    return _resolvePermission('interrupt', permissionId);
+  }
+
+  Future<void> approve([String? permissionId]) {
+    return _resolvePermission('approve', permissionId);
+  }
+
+  Future<void> reject([String? permissionId]) {
+    return _resolvePermission('reject', permissionId);
+  }
+
   Future<void> requestFiles() => _relay.sendCommand('file_list', {});
 
   Future<void> readFile(String path) {
@@ -198,6 +205,14 @@ class SessionController extends ChangeNotifier {
         _state = _pushInbox(
           _state.copyWith(status: ConnectionStatus.ready),
           AttentionItem.fromEvent(type: event.type, data: event.data),
+        );
+        break;
+      case 'permission_resolved':
+        _state = _state.copyWith(
+          inbox: _withoutResolvedPermission(
+            _state.inbox,
+            event.data['id'] as String?,
+          ),
         );
         break;
       case 'diff_ready':
@@ -341,6 +356,33 @@ class SessionController extends ChangeNotifier {
     return state.copyWith(
       inbox: next.length > 40 ? next.sublist(0, 40) : next,
     );
+  }
+
+  Future<void> _resolvePermission(String action, String? permissionId) {
+    final payload = <String, dynamic>{};
+    if (permissionId != null && permissionId.isNotEmpty) {
+      payload['id'] = permissionId;
+    }
+    return _relay.sendCommand(action, payload);
+  }
+
+  List<AttentionItem> _withoutResolvedPermission(
+    List<AttentionItem> inbox,
+    String? permissionId,
+  ) {
+    if (permissionId != null && permissionId.isNotEmpty) {
+      return inbox.where((item) => item.id != permissionId).toList();
+    }
+    var removedFallback = false;
+    final next = <AttentionItem>[];
+    for (final item in inbox) {
+      if (!removedFallback && item.kind == AttentionKind.permission) {
+        removedFallback = true;
+        continue;
+      }
+      next.add(item);
+    }
+    return next;
   }
 
   List<DiffCardModel> _upsertDiff(

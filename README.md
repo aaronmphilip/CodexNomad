@@ -31,6 +31,7 @@ codexnomad install
 codexnomad start
 codexnomad status
 codexnomad logs
+codexnomad doctor
 codexnomad stop
 ```
 
@@ -99,6 +100,14 @@ The Flutter app scans `codexnomad://pair?data=<base64url-json>`, generates its o
 
 The daemon replies with `daemon_ready`. After that, all app and daemon payloads use `type: ciphertext`. The relay routes by `sid` only and never receives plaintext terminal output, prompts, diffs, file content, or commands.
 
+Before pairing, run:
+
+```sh
+codexnomad doctor
+```
+
+It checks machine identity, runtime write access, relay health, trusted phone state, and Codex/Claude CLI availability. A failing relay check means the phone cannot connect yet.
+
 Encrypted app command types:
 
 - `stdin` with `{ "text": "..." }`
@@ -115,6 +124,8 @@ Encrypted daemon event types:
 - `session_started`
 - `session_ready`
 - `terminal_output`
+- `permission_requested`
+- `permission_resolved`
 - `file_snapshot`
 - `file_content`
 - `file_saved`
@@ -124,6 +135,6 @@ Encrypted daemon event types:
 
 ## Security model
 
-Each session creates a fresh ephemeral keypair. Payloads are encrypted with NaCl/libsodium-compatible public-key boxes using X25519 and XSalsa20-Poly1305 from `golang.org/x/crypto/nacl/box`. The relay sees session IDs and ciphertext only.
+Each session creates a fresh ephemeral keypair. Payloads are encrypted with X25519 shared secrets and XChaCha20-Poly1305 envelopes. The relay sees session IDs and ciphertext only.
 
 Blunt boundary: when running in cloud mode, the DigitalOcean droplet necessarily sees the working tree because Codex/Claude executes there. The relay and subscription backend must never see code or terminal plaintext.

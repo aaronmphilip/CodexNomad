@@ -42,7 +42,11 @@ func NewHub(cfg config.Config) *Hub {
 
 func (h *Hub) Handle(w http.ResponseWriter, r *http.Request) {
 	conn, err := websocket.Accept(w, r, &websocket.AcceptOptions{
-		InsecureSkipVerify: false,
+		// Native mobile clients do not have a browser-origin security model.
+		// Session routing is protected by relay tickets/shared tokens in prod
+		// and payloads are still E2EE ciphertext, so strict Origin matching
+		// would only break legitimate Android clients on local LAN relay URLs.
+		InsecureSkipVerify: true,
 		CompressionMode:    websocket.CompressionDisabled,
 	})
 	if err != nil {

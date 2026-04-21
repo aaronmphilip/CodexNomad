@@ -35,6 +35,12 @@ codexnomad doctor
 codexnomad stop
 ```
 
+Production verification on Windows:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\ci\verify-production-windows.ps1
+```
+
 Headless cloud worker command used by provisioned droplets:
 
 ```sh

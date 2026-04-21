@@ -2,6 +2,26 @@
 
 These scripts are for Windows local PC-on testing with a real Android phone.
 
+Fast path:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\dev\start-local-test-windows.ps1
+```
+
+That starts the local relay and a Codex session in separate PowerShell windows. Use `-Agent claude` for Claude Code:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\dev\start-local-test-windows.ps1 -Agent claude
+```
+
+To also run the Flutter app from the script when a wireless Android device is already connected:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\dev\start-local-test-windows.ps1 -RunApp
+```
+
+Manual path:
+
 1. Start the relay:
 
 ```powershell

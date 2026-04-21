@@ -13,6 +13,8 @@ type Config struct {
 	PublicBaseURL     string
 	RelaySharedToken  string
 	RelayTicketSecret string
+	RelayDebugFrames  bool
+	RelayLeakMarkers  []string
 	AppSharedToken    string
 	AdminSharedToken  string
 
@@ -50,6 +52,8 @@ func Load() (Config, error) {
 		PublicBaseURL:          strings.TrimRight(env("PUBLIC_BASE_URL", "http://localhost:8080"), "/"),
 		RelaySharedToken:       os.Getenv("RELAY_SHARED_TOKEN"),
 		RelayTicketSecret:      os.Getenv("RELAY_TICKET_SECRET"),
+		RelayDebugFrames:       envBool("CODEXNOMAD_RELAY_DEBUG_FRAMES"),
+		RelayLeakMarkers:       csv(os.Getenv("CODEXNOMAD_RELAY_LEAK_MARKERS")),
 		AppSharedToken:         os.Getenv("APP_SHARED_TOKEN"),
 		AdminSharedToken:       os.Getenv("ADMIN_SHARED_TOKEN"),
 		SupabaseURL:            strings.TrimRight(os.Getenv("SUPABASE_URL"), "/"),
@@ -96,6 +100,11 @@ func csv(raw string) []string {
 		}
 	}
 	return out
+}
+
+func envBool(key string) bool {
+	v := strings.ToLower(strings.TrimSpace(os.Getenv(key)))
+	return v == "1" || v == "true" || v == "yes" || v == "on"
 }
 
 func (c Config) TrialDuration() time.Duration {

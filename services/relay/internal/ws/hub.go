@@ -1,6 +1,7 @@
 package ws
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"log"
@@ -72,6 +73,7 @@ func (c *client) readLoop(ctx context.Context) {
 		if err := json.Unmarshal(raw, &msg); err != nil {
 			continue
 		}
+		c.hub.auditFrame(c, msg, raw)
 		if msg.SessionID == "" {
 			continue
 		}
@@ -92,6 +94,30 @@ func (c *client) readLoop(ctx context.Context) {
 		}
 		c.hub.forward(c, raw)
 	}
+}
+
+func (h *Hub) auditFrame(c *client, msg WireMessage, raw []byte) {
+	for _, marker := range h.cfg.RelayLeakMarkers {
+		if marker == "" {
+			continue
+		}
+		if bytes.Contains(raw, []byte(marker)) {
+			log.Printf("POSSIBLE PLAINTEXT LEAK sid=%s role=%s marker=%q", msg.SessionID, msg.Role, marker)
+		}
+	}
+	if !h.cfg.RelayDebugFrames {
+		return
+	}
+	isCiphertext := msg.Type == "ciphertext"
+	log.Printf(
+		"relay frame sid=%s role=%s type=%s payload_bytes=%d ciphertext=%t registered_role=%s",
+		msg.SessionID,
+		msg.Role,
+		msg.Type,
+		len(msg.Payload),
+		isCiphertext,
+		c.role,
+	)
 }
 
 func (h *Hub) ticketFromRequest(r *http.Request) (auth.RelayTicket, bool) {

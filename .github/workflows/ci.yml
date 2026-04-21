@@ -103,8 +103,10 @@ jobs:
           storePassword=codexnomad-ci
           keyPassword=codexnomad-ci
           keyAlias=codexnomad-ci
-          storeFile=keystores/codexnomad-ci-upload.jks
+          storeFile=../keystores/codexnomad-ci-upload.jks
           EOF
+          test -s android/key.properties
+          test -s android/keystores/codexnomad-ci-upload.jks
 
       - name: Build release app bundle
         run: flutter build appbundle --release --no-pub

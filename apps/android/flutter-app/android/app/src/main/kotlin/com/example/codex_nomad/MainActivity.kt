@@ -1,4 +1,4 @@
-package com.example.codex_nomad
+package pro.codexnomad.app
 
 import io.flutter.embedding.android.FlutterActivity
 

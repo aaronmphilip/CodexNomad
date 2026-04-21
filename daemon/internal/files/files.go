@@ -51,6 +51,36 @@ func GitSnapshot(root string) (Snapshot, error) {
 	return Snapshot{Root: root, Files: entries}, nil
 }
 
+func GitDiff(root string, limit int) ([]byte, error) {
+	if limit <= 0 {
+		limit = 512 * 1024
+	}
+	var combined []byte
+	for _, args := range [][]string{
+		{"-C", root, "diff", "--no-ext-diff", "--patch"},
+		{"-C", root, "diff", "--cached", "--no-ext-diff", "--patch"},
+	} {
+		out, err := exec.Command("git", args...).Output()
+		if err != nil {
+			return nil, err
+		}
+		if len(out) == 0 {
+			continue
+		}
+		combined = append(combined, out...)
+		if len(combined) > 0 && combined[len(combined)-1] != '\n' {
+			combined = append(combined, '\n')
+		}
+	}
+	if len(combined) > limit {
+		truncated := make([]byte, 0, limit+80)
+		truncated = append(truncated, combined[:limit]...)
+		truncated = append(truncated, []byte("\n\n[Codex Nomad truncated this diff for mobile review]\n")...)
+		return truncated, nil
+	}
+	return combined, nil
+}
+
 func Poll(ctx context.Context, root string, interval time.Duration, emit func(Snapshot)) {
 	t := time.NewTicker(interval)
 	defer t.Stop()

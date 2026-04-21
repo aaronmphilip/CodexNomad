@@ -1,6 +1,8 @@
 package config
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"errors"
 	"net/url"
 	"os"
@@ -26,6 +28,9 @@ type Config struct {
 	LogDir             string
 	CodexBin           string
 	ClaudeBin          string
+	MachineID          string
+	MachineName        string
+	MachineOS          string
 	Mode               string
 	RequireRelay       bool
 }
@@ -51,6 +56,8 @@ func Load() (Config, error) {
 		LogDir:             filepath.Join(configDir, "logs"),
 		CodexBin:           env("CODEXNOMAD_CODEX_BIN", "codex"),
 		ClaudeBin:          env("CODEXNOMAD_CLAUDE_BIN", "claude"),
+		MachineName:        env("CODEXNOMAD_MACHINE_NAME", hostname()),
+		MachineOS:          runtime.GOOS,
 		Mode:               env("CODEXNOMAD_MODE", detectMode()),
 		RequireRelay:       envBool("CODEXNOMAD_REQUIRE_RELAY"),
 	}
@@ -61,6 +68,10 @@ func Load() (Config, error) {
 		if err := os.MkdirAll(dir, 0o700); err != nil {
 			return Config{}, err
 		}
+	}
+	cfg.MachineID, err = loadMachineID(cfg.ConfigDir)
+	if err != nil {
+		return Config{}, err
 	}
 	return cfg, nil
 }
@@ -91,6 +102,33 @@ func env(key, fallback string) string {
 func envBool(key string) bool {
 	v := strings.ToLower(strings.TrimSpace(os.Getenv(key)))
 	return v == "1" || v == "true" || v == "yes" || v == "on"
+}
+
+func hostname() string {
+	name, err := os.Hostname()
+	if err != nil || strings.TrimSpace(name) == "" {
+		return runtime.GOOS + " machine"
+	}
+	return strings.TrimSpace(name)
+}
+
+func loadMachineID(configDir string) (string, error) {
+	path := filepath.Join(configDir, "machine-id")
+	if raw, err := os.ReadFile(path); err == nil {
+		id := strings.TrimSpace(string(raw))
+		if id != "" {
+			return id, nil
+		}
+	}
+	var buf [18]byte
+	if _, err := rand.Read(buf[:]); err != nil {
+		return "", err
+	}
+	id := "mch_" + base64.RawURLEncoding.EncodeToString(buf[:])
+	if err := os.WriteFile(path, []byte(id+"\n"), 0o600); err != nil {
+		return "", err
+	}
+	return id, nil
 }
 
 func validateRelay(raw string) error {

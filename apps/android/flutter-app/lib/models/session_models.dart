@@ -18,6 +18,8 @@ class SessionSummary {
     required this.mode,
     required this.status,
     required this.lastActivity,
+    this.machineName = 'Local machine',
+    this.machineOs = '',
   });
 
   final String id;
@@ -25,6 +27,8 @@ class SessionSummary {
   final String mode;
   final ConnectionStatus status;
   final DateTime lastActivity;
+  final String machineName;
+  final String machineOs;
 }
 
 class TerminalChunk {
@@ -83,6 +87,115 @@ class DiffCardModel {
   final String patch;
 }
 
+enum AttentionKind {
+  permission,
+  diff,
+  blocked,
+  complete,
+  connection,
+  error,
+}
+
+enum AttentionTone {
+  info,
+  success,
+  warning,
+  danger,
+}
+
+class AttentionItem {
+  const AttentionItem({
+    required this.id,
+    required this.kind,
+    required this.title,
+    required this.detail,
+    required this.createdAt,
+    this.tone = AttentionTone.info,
+    this.actionLabel,
+  });
+
+  factory AttentionItem.fromEvent({
+    required String type,
+    required Map<String, dynamic> data,
+  }) {
+    final now = DateTime.now();
+    return switch (type) {
+      'permission_requested' => AttentionItem(
+          id: data['id'] as String? ??
+              'permission-${now.microsecondsSinceEpoch}',
+          kind: AttentionKind.permission,
+          title: data['title'] as String? ?? 'Permission requested',
+          detail: data['detail'] as String? ?? 'The agent needs approval.',
+          createdAt: now,
+          tone: _toneForRisk(data['risk'] as String?),
+          actionLabel: 'Review',
+        ),
+      'diff_ready' => AttentionItem(
+          id: 'diff-${data['file_path'] ?? now.microsecondsSinceEpoch}',
+          kind: AttentionKind.diff,
+          title: 'Diff ready',
+          detail:
+              data['summary'] as String? ?? 'Working tree changes are ready.',
+          createdAt: now,
+          tone: AttentionTone.info,
+          actionLabel: 'Open',
+        ),
+      'process_exit' => AttentionItem(
+          id: 'exit-${now.microsecondsSinceEpoch}',
+          kind: AttentionKind.complete,
+          title: 'Agent finished',
+          detail: (data['error'] as String?)?.isNotEmpty == true
+              ? data['error'] as String
+              : 'The local session ended.',
+          createdAt: now,
+          tone: (data['error'] as String?)?.isNotEmpty == true
+              ? AttentionTone.warning
+              : AttentionTone.success,
+        ),
+      'disconnect' => AttentionItem(
+          id: 'disconnect-${now.microsecondsSinceEpoch}',
+          kind: AttentionKind.connection,
+          title: 'Connection dropped',
+          detail: data['error'] as String? ?? 'Reconnect to the local machine.',
+          createdAt: now,
+          tone: AttentionTone.warning,
+        ),
+      'error' => AttentionItem(
+          id: 'error-${now.microsecondsSinceEpoch}',
+          kind: AttentionKind.error,
+          title: 'Session error',
+          detail: data['message'] as String? ?? 'The local session failed.',
+          createdAt: now,
+          tone: AttentionTone.danger,
+        ),
+      _ => AttentionItem(
+          id: '$type-${now.microsecondsSinceEpoch}',
+          kind: AttentionKind.blocked,
+          title: type,
+          detail: '$data',
+          createdAt: now,
+          tone: AttentionTone.info,
+        ),
+    };
+  }
+
+  final String id;
+  final AttentionKind kind;
+  final String title;
+  final String detail;
+  final DateTime createdAt;
+  final AttentionTone tone;
+  final String? actionLabel;
+}
+
+AttentionTone _toneForRisk(String? risk) {
+  return switch (risk) {
+    'high' => AttentionTone.danger,
+    'medium' => AttentionTone.warning,
+    _ => AttentionTone.info,
+  };
+}
+
 class CodeFile {
   const CodeFile({
     required this.path,
@@ -100,6 +213,7 @@ class LiveSessionState {
     this.terminal = const [],
     this.files = const [],
     this.diffs = const [],
+    this.inbox = const [],
     this.openFile,
     this.error,
   });
@@ -109,6 +223,7 @@ class LiveSessionState {
   final List<TerminalChunk> terminal;
   final List<FileEntry> files;
   final List<DiffCardModel> diffs;
+  final List<AttentionItem> inbox;
   final CodeFile? openFile;
   final String? error;
 
@@ -118,6 +233,7 @@ class LiveSessionState {
     List<TerminalChunk>? terminal,
     List<FileEntry>? files,
     List<DiffCardModel>? diffs,
+    List<AttentionItem>? inbox,
     CodeFile? openFile,
     String? error,
   }) {
@@ -127,6 +243,7 @@ class LiveSessionState {
       terminal: terminal ?? this.terminal,
       files: files ?? this.files,
       diffs: diffs ?? this.diffs,
+      inbox: inbox ?? this.inbox,
       openFile: openFile ?? this.openFile,
       error: error,
     );

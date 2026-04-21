@@ -5,10 +5,10 @@
 This is the local PC-on Android app:
 
 - QR scan pairing from `codexnomad codex` or `codexnomad claude`.
-- E2EE WebSocket relay connection using libsodium `crypto_box`.
+- E2EE WebSocket relay connection using X25519 plus XChaCha20-Poly1305.
 - Live terminal output.
 - Chat input with microphone shortcut.
-- Approve, reject, approve all, interrupt, and end session actions.
+- Approve, reject, interrupt, and end session actions.
 - Diff cards instead of raw JSON/XML walls.
 - Changed-file and project-file browser.
 - Inline editor with syntax highlighting and `Save & Push`.
@@ -67,13 +67,13 @@ Terminal 2, start a Codex session:
 
 ```sh
 set CODEXNOMAD_RELAY_URL=ws://localhost:8080/v1/relay
-codexnomad codex
+codexnomad pair
 ```
 
 For Android emulator, the app uses `10.0.2.2` to reach host machine services. If using a real phone, replace URLs with your machine LAN IP:
 
 ```sh
-codexnomad codex
+codexnomad pair
 ```
 
 Build/run app:
@@ -88,7 +88,7 @@ flutter run \
 Then:
 
 1. Open app.
-2. Tap `New Session`.
+2. Tap `Pair local`.
 3. Scan the terminal QR.
 4. Live Session opens.
 5. Use Terminal, Chat, Files, and Editor tabs.

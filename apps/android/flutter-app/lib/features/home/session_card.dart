@@ -4,6 +4,7 @@ import 'package:codex_nomad/widgets/metric_chip.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 class SessionCard extends StatelessWidget {
   const SessionCard({super.key, required this.summary});
@@ -22,8 +23,8 @@ class SessionCard extends StatelessWidget {
             children: [
               CircleAvatar(
                 child: Icon(summary.agent == AgentKind.claude
-                    ? Icons.auto_awesome_rounded
-                    : Icons.terminal_rounded),
+                    ? PhosphorIconsRegular.sparkle
+                    : PhosphorIconsRegular.terminal),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -34,14 +35,17 @@ class SessionCard extends StatelessWidget {
                         style: Theme.of(context).textTheme.titleMedium),
                     const SizedBox(height: 4),
                     Text(
-                        'Last activity ${DateFormat.Hm().format(summary.lastActivity)}'),
+                      '${summary.machineName} · ${DateFormat.Hm().format(summary.lastActivity)}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ],
                 ),
               ),
               MetricChip(
                 icon: summary.mode == 'cloud'
-                    ? Icons.cloud_done_rounded
-                    : Icons.laptop_rounded,
+                    ? PhosphorIconsRegular.cloudCheck
+                    : PhosphorIconsRegular.laptop,
                 label: summary.mode,
               ),
             ],

@@ -1,6 +1,7 @@
 import 'package:codex_nomad/features/live/widgets/chat_pane.dart';
 import 'package:codex_nomad/features/live/widgets/editor_pane.dart';
 import 'package:codex_nomad/features/live/widgets/file_browser_pane.dart';
+import 'package:codex_nomad/features/live/widgets/review_pane.dart';
 import 'package:codex_nomad/features/live/widgets/session_action_bar.dart';
 import 'package:codex_nomad/features/live/widgets/terminal_pane.dart';
 import 'package:codex_nomad/models/session_models.dart';
@@ -9,6 +10,7 @@ import 'package:codex_nomad/widgets/metric_chip.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 class LiveSessionScreen extends ConsumerStatefulWidget {
   const LiveSessionScreen({super.key});
@@ -48,7 +50,7 @@ class _LiveSessionScreenState extends ConsumerState<LiveSessionScreen> {
               await ref.read(sessionControllerProvider).end();
               if (context.mounted) context.go('/');
             },
-            icon: const Icon(Icons.close_rounded),
+            icon: const Icon(PhosphorIconsRegular.xCircle),
           ),
         ],
       ),
@@ -65,23 +67,27 @@ class _LiveSessionScreenState extends ConsumerState<LiveSessionScreen> {
         selectedIndex: _tab,
         onDestinationSelected: (value) {
           setState(() => _tab = value);
-          if (value == 2) controller.requestFiles();
+          if (value == 3) controller.requestFiles();
         },
         destinations: const [
           NavigationDestination(
-            icon: Icon(Icons.terminal_rounded),
+            icon: Icon(PhosphorIconsRegular.shieldCheck),
+            label: 'Review',
+          ),
+          NavigationDestination(
+            icon: Icon(PhosphorIconsRegular.terminal),
             label: 'Terminal',
           ),
           NavigationDestination(
-            icon: Icon(Icons.chat_bubble_outline_rounded),
+            icon: Icon(PhosphorIconsRegular.command),
             label: 'Chat',
           ),
           NavigationDestination(
-            icon: Icon(Icons.folder_open_rounded),
+            icon: Icon(PhosphorIconsRegular.folderOpen),
             label: 'Files',
           ),
           NavigationDestination(
-            icon: Icon(Icons.code_rounded),
+            icon: Icon(PhosphorIconsRegular.code),
             label: 'Editor',
           ),
         ],
@@ -96,13 +102,15 @@ class _LiveSessionScreenState extends ConsumerState<LiveSessionScreen> {
   ) {
     switch (tab) {
       case 1:
-        return ChatPane(controller: controller, state: state);
+        return TerminalPane(state: state, controller: controller);
       case 2:
-        return FileBrowserPane(controller: controller, files: state.files);
+        return ChatPane(controller: controller, state: state);
       case 3:
+        return FileBrowserPane(controller: controller, files: state.files);
+      case 4:
         return EditorPane(controller: controller, file: state.openFile);
       default:
-        return TerminalPane(state: state, controller: controller);
+        return ReviewPane(state: state, controller: controller);
     }
   }
 }

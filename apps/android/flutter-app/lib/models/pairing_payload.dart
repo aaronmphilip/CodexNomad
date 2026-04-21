@@ -22,6 +22,9 @@ class PairingPayload {
     required this.mode,
     required this.relayUrl,
     required this.publicKey,
+    required this.machineId,
+    required this.machineName,
+    required this.machineOs,
     required this.createdAt,
     required this.expiresAt,
   });
@@ -41,6 +44,25 @@ class PairingPayload {
       mode: json['mode'] as String? ?? 'local',
       relayUrl: json['relay_url'] as String,
       publicKey: json['public_key'] as String,
+      machineId: json['machine_id'] as String? ?? '',
+      machineName: json['machine_name'] as String? ?? 'Local machine',
+      machineOs: json['machine_os'] as String? ?? '',
+      createdAt: DateTime.parse(json['created_at'] as String),
+      expiresAt: DateTime.parse(json['expires_at'] as String),
+    );
+  }
+
+  factory PairingPayload.fromJson(Map<String, dynamic> json) {
+    return PairingPayload(
+      version: json['v'] as int? ?? 1,
+      sessionId: json['sid'] as String,
+      agent: AgentKind.fromWire(json['agent'] as String? ?? 'codex'),
+      mode: json['mode'] as String? ?? 'local',
+      relayUrl: json['relay_url'] as String,
+      publicKey: json['public_key'] as String,
+      machineId: json['machine_id'] as String? ?? '',
+      machineName: json['machine_name'] as String? ?? 'Local machine',
+      machineOs: json['machine_os'] as String? ?? '',
       createdAt: DateTime.parse(json['created_at'] as String),
       expiresAt: DateTime.parse(json['expires_at'] as String),
     );
@@ -52,8 +74,29 @@ class PairingPayload {
   final String mode;
   final String relayUrl;
   final String publicKey;
+  final String machineId;
+  final String machineName;
+  final String machineOs;
   final DateTime createdAt;
   final DateTime expiresAt;
 
   bool get isExpired => DateTime.now().toUtc().isAfter(expiresAt);
+
+  Map<String, dynamic> toJson() {
+    return {
+      'v': version,
+      'sid': sessionId,
+      'agent': agent.wire,
+      'mode': mode,
+      'relay_url': relayUrl,
+      'public_key': publicKey,
+      'machine_id': machineId,
+      'machine_name': machineName,
+      'machine_os': machineOs,
+      'created_at': createdAt.toUtc().toIso8601String(),
+      'expires_at': expiresAt.toUtc().toIso8601String(),
+    };
+  }
+
+  String encodeForStorage() => jsonEncode(toJson());
 }

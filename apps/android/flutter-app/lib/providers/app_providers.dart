@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:codex_nomad/core/config/app_config.dart';
+import 'package:codex_nomad/core/services/local_pairing_store.dart';
+import 'package:codex_nomad/core/services/notification_service.dart';
 import 'package:codex_nomad/core/services/relay_service.dart';
 import 'package:codex_nomad/core/services/supabase_service.dart';
 import 'package:codex_nomad/core/services/voice_service.dart';
@@ -19,13 +21,22 @@ final voiceServiceProvider = Provider<VoiceService>((ref) {
   return VoiceService();
 });
 
+final notificationServiceProvider = Provider<NotificationService>((ref) {
+  final service = NotificationService();
+  unawaited(service.initialize());
+  return service;
+});
+
 final authControllerProvider = ChangeNotifierProvider<AuthController>((ref) {
   return AuthController(ref.watch(supabaseServiceProvider));
 });
 
 final sessionControllerProvider =
     ChangeNotifierProvider<SessionController>((ref) {
-  final controller = SessionController(ref.watch(appConfigProvider));
+  final controller = SessionController(
+    ref.watch(appConfigProvider),
+    ref.watch(notificationServiceProvider),
+  );
   ref.onDispose(controller.dispose);
   return controller;
 });
@@ -65,17 +76,23 @@ class AuthController extends ChangeNotifier {
 }
 
 class SessionController extends ChangeNotifier {
-  SessionController(AppConfig config) : _relay = RelayService(config) {
+  SessionController(AppConfig config, this._notifications)
+      : _relay = RelayService(config) {
     _relaySub = _relay.events.listen(_handleEvent);
+    unawaited(_restoreLastPairing());
   }
 
   final RelayService _relay;
+  final NotificationService _notifications;
+  final LocalPairingStore _pairingStore = LocalPairingStore();
   StreamSubscription<RelayEvent>? _relaySub;
   LiveSessionState _state = const LiveSessionState();
   final List<SessionSummary> _recentSessions = [];
+  PairingPayload? _lastPairing;
 
   LiveSessionState get state => _state;
   List<SessionSummary> get recentSessions => List.unmodifiable(_recentSessions);
+  PairingPayload? get lastPairing => _lastPairing;
 
   Future<void> connectFromQr(String rawQr) async {
     final pairing = PairingPayload.fromQr(rawQr);
@@ -86,6 +103,8 @@ class SessionController extends ChangeNotifier {
     notifyListeners();
     try {
       await _relay.connect(pairing);
+      _lastPairing = pairing;
+      unawaited(_pairingStore.saveLastPairing(pairing));
       _remember(pairing, ConnectionStatus.connecting);
     } catch (error) {
       _state = _state.copyWith(
@@ -93,6 +112,30 @@ class SessionController extends ChangeNotifier {
         error: '$error',
       );
       notifyListeners();
+    }
+  }
+
+  Future<bool> reconnectLastPairing() async {
+    final pairing = _lastPairing;
+    if (pairing == null) {
+      throw StateError('No recent local pairing saved.');
+    }
+    _state = LiveSessionState(
+      pairing: pairing,
+      status: ConnectionStatus.connecting,
+    );
+    notifyListeners();
+    try {
+      await _relay.connect(pairing);
+      _remember(pairing, ConnectionStatus.connecting);
+      return true;
+    } catch (error) {
+      _state = _state.copyWith(
+        status: ConnectionStatus.error,
+        error: '$error',
+      );
+      notifyListeners();
+      return false;
     }
   }
 
@@ -105,7 +148,6 @@ class SessionController extends ChangeNotifier {
   Future<void> interrupt() => _relay.sendCommand('interrupt', {});
   Future<void> approve() => _relay.sendCommand('approve', {});
   Future<void> reject() => _relay.sendCommand('reject', {});
-  Future<void> approveAll() => _relay.sendCommand('stdin', {'text': 'y\n'});
   Future<void> requestFiles() => _relay.sendCommand('file_list', {});
 
   Future<void> readFile(String path) {
@@ -139,10 +181,54 @@ class SessionController extends ChangeNotifier {
         final pairing = _state.pairing;
         if (pairing != null) _remember(pairing, ConnectionStatus.ready);
         break;
+      case 'session_started':
+        final pairing = _state.pairing;
+        if (pairing != null) _remember(pairing, ConnectionStatus.ready);
+        break;
       case 'disconnect':
-        _state = _state.copyWith(
-          status: ConnectionStatus.disconnected,
-          error: event.data['error'] as String?,
+        _state = _pushInbox(
+          _state.copyWith(
+            status: ConnectionStatus.disconnected,
+            error: event.data['error'] as String?,
+          ),
+          AttentionItem.fromEvent(type: event.type, data: event.data),
+        );
+        break;
+      case 'permission_requested':
+        _state = _pushInbox(
+          _state.copyWith(status: ConnectionStatus.ready),
+          AttentionItem.fromEvent(type: event.type, data: event.data),
+        );
+        break;
+      case 'diff_ready':
+        final patch = _decodeEventText(event.data, 'patch');
+        final model = DiffCardModel(
+          filePath: event.data['file_path'] as String? ?? 'Working tree',
+          summary: event.data['summary'] as String? ?? 'Changes ready',
+          patch: patch.isEmpty ? 'Diff unavailable.' : patch,
+        );
+        _state = _pushInbox(
+          _state.copyWith(
+            diffs: _upsertDiff(_state.diffs, model),
+          ),
+          AttentionItem.fromEvent(type: event.type, data: event.data),
+        );
+        break;
+      case 'process_exit':
+        _state = _pushInbox(
+          _state.copyWith(status: ConnectionStatus.ended),
+          AttentionItem.fromEvent(type: event.type, data: event.data),
+        );
+        break;
+      case 'pairing_expired':
+        _lastPairing = null;
+        unawaited(_pairingStore.clearLastPairing());
+        _state = _pushInbox(
+          _state.copyWith(
+            status: ConnectionStatus.error,
+            error: event.data['message'] as String?,
+          ),
+          AttentionItem.fromEvent(type: 'error', data: event.data),
         );
         break;
       case 'terminal_output':
@@ -183,9 +269,12 @@ class SessionController extends ChangeNotifier {
         requestFiles();
         break;
       case 'error':
-        _state = _state.copyWith(
-          status: ConnectionStatus.error,
-          error: event.data['message'] as String?,
+        _state = _pushInbox(
+          _state.copyWith(
+            status: ConnectionStatus.error,
+            error: event.data['message'] as String?,
+          ),
+          AttentionItem.fromEvent(type: event.type, data: event.data),
         );
         break;
     }
@@ -218,8 +307,50 @@ class SessionController extends ChangeNotifier {
         mode: pairing.mode,
         status: status,
         lastActivity: DateTime.now(),
+        machineName: pairing.machineName,
+        machineOs: pairing.machineOs,
       ),
     );
+  }
+
+  Future<void> _restoreLastPairing() async {
+    final pairing = await _pairingStore.loadLastPairing();
+    if (pairing == null) return;
+    _lastPairing = pairing;
+    if (!pairing.isExpired) {
+      _remember(pairing, ConnectionStatus.disconnected);
+    }
+    notifyListeners();
+  }
+
+  String _decodeEventText(Map<String, dynamic> data, String key) {
+    final value = data[key] as String? ?? '';
+    if (value.isEmpty) return '';
+    if (data['encoding'] == 'base64') {
+      return utf8.decode(base64StdNoPadDecode(value), allowMalformed: true);
+    }
+    return value;
+  }
+
+  LiveSessionState _pushInbox(LiveSessionState state, AttentionItem item) {
+    unawaited(_notifications.showAttention(item));
+    final next = [
+      item,
+      ...state.inbox.where((existing) => existing.id != item.id),
+    ];
+    return state.copyWith(
+      inbox: next.length > 40 ? next.sublist(0, 40) : next,
+    );
+  }
+
+  List<DiffCardModel> _upsertDiff(
+    List<DiffCardModel> current,
+    DiffCardModel model,
+  ) {
+    return [
+      model,
+      ...current.where((item) => item.filePath != model.filePath),
+    ].take(12).toList();
   }
 
   @override

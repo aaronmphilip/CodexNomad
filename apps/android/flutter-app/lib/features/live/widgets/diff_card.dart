@@ -1,6 +1,7 @@
 import 'package:codex_nomad/models/session_models.dart';
 import 'package:codex_nomad/providers/app_providers.dart';
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 class DiffCard extends StatelessWidget {
   const DiffCard({
@@ -19,7 +20,7 @@ class DiffCard extends StatelessWidget {
       child: ExpansionTile(
         tilePadding: const EdgeInsets.symmetric(horizontal: 14),
         childrenPadding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
-        leading: Icon(Icons.difference_rounded, color: scheme.primary),
+        leading: Icon(PhosphorIconsRegular.gitDiff, color: scheme.primary),
         title:
             Text(model.filePath, maxLines: 1, overflow: TextOverflow.ellipsis),
         subtitle: Text(model.summary),
@@ -44,16 +45,16 @@ class DiffCard extends StatelessWidget {
               Expanded(
                 child: FilledButton.icon(
                   onPressed: () => controller.approve(),
-                  icon: const Icon(Icons.check_rounded),
-                  label: const Text('Approve'),
+                  icon: const Icon(PhosphorIconsRegular.checkCircle),
+                  label: const Text('Approve once'),
                 ),
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: OutlinedButton.icon(
                   onPressed: () => controller.reject(),
-                  icon: const Icon(Icons.close_rounded),
-                  label: const Text('Reject'),
+                  icon: const Icon(PhosphorIconsRegular.xCircle),
+                  label: const Text('Deny'),
                 ),
               ),
             ],

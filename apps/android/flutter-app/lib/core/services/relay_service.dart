@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:codex_nomad/core/config/app_config.dart';
 import 'package:codex_nomad/core/services/crypto_service.dart';
+import 'package:codex_nomad/core/services/local_device_key_store.dart';
 import 'package:codex_nomad/models/pairing_payload.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
@@ -19,6 +20,7 @@ class RelayService {
   RelayService(this.config);
 
   final AppConfig config;
+  final LocalDeviceKeyStore _deviceKeyStore = LocalDeviceKeyStore();
   WebSocketChannel? _channel;
   CryptoService? _crypto;
   PairingPayload? _pairing;
@@ -27,14 +29,28 @@ class RelayService {
 
   Stream<RelayEvent> get events => _events.stream;
 
+  bool canResume(PairingPayload pairing) {
+    return _crypto != null && _pairing?.sessionId == pairing.sessionId;
+  }
+
   Future<void> connect(PairingPayload pairing) async {
-    if (pairing.isExpired) {
-      throw StateError('Pairing QR expired. Start a new daemon session.');
-    }
-    await close();
+    final reuseCrypto = canResume(pairing);
+    await _closeSocket();
     _pairing = pairing;
-    _crypto = await CryptoService.create()
-      ..setPeerPublicKey(pairing.publicKey);
+    if (!reuseCrypto) {
+      _crypto?.dispose();
+      final seed =
+          await _deviceKeyStore.loadOrCreateBoxSeed(CryptoService.boxSeedBytes);
+      final initialSequence =
+          await _deviceKeyStore.loadSequence(pairing.sessionId);
+      _crypto = await CryptoService.create(
+        seed: seed,
+        initialSequence: initialSequence,
+      );
+      await _crypto!.setPeerPublicKey(pairing.publicKey);
+    } else {
+      await _crypto!.setPeerPublicKey(pairing.publicKey);
+    }
 
     final uri = await _relayUri(pairing);
     debugPrint('CodexNomad relay connect: $uri');
@@ -55,11 +71,14 @@ class RelayService {
       cancelOnError: false,
     );
 
+    final mobilePublicKey = _crypto!.publicKey;
     _sendPlain({
       'type': 'mobile_hello',
       'sid': pairing.sessionId,
       'role': 'mobile',
-      'public_key': _crypto!.publicKey,
+      'public_key': mobilePublicKey,
+      'device_id': _deviceIdForPublicKey(mobilePublicKey),
+      'device_name': 'Codex Nomad phone',
     });
 
     _pingTimer = Timer.periodic(const Duration(seconds: 25), (_) {
@@ -104,11 +123,12 @@ class RelayService {
     if (pairing == null || crypto == null) {
       throw StateError('No active relay session.');
     }
-    final env = crypto.seal(
+    final env = await crypto.seal(
       sessionId: pairing.sessionId,
       type: type,
       data: data,
     );
+    await _deviceKeyStore.saveSequence(pairing.sessionId, crypto.sequence);
     _sendPlain({
       'type': 'ciphertext',
       'sid': pairing.sessionId,
@@ -122,6 +142,10 @@ class RelayService {
   }
 
   void _handleRaw(dynamic raw) {
+    unawaited(_handleRawAsync(raw));
+  }
+
+  Future<void> _handleRawAsync(dynamic raw) async {
     try {
       final decoded = jsonDecode(raw as String) as Map<String, dynamic>;
       final type = decoded['type'] as String? ?? '';
@@ -129,9 +153,30 @@ class RelayService {
       if (type == 'daemon_ready') {
         final key = decoded['public_key'] as String?;
         if (key != null && key.isNotEmpty) {
-          _crypto?.setPeerPublicKey(key);
+          await _crypto?.setPeerPublicKey(key);
         }
-        _events.add(const RelayEvent('session_ready', {}));
+        _events.add(RelayEvent('session_ready', {
+          'device_id': decoded['device_id'],
+        }));
+        return;
+      }
+      if (type == 'pairing_expired') {
+        _events.add(const RelayEvent('pairing_expired', {
+          'message':
+              'Pairing expired. Start a new local session and scan again.',
+        }));
+        return;
+      }
+      if (type == 'device_identity_required') {
+        _events.add(const RelayEvent('error', {
+          'message': 'This app build is missing a trusted phone identity.',
+        }));
+        return;
+      }
+      if (type == 'device_authorization_failed') {
+        _events.add(const RelayEvent('error', {
+          'message': 'The machine could not save this phone as trusted.',
+        }));
         return;
       }
       if (type != 'ciphertext') {
@@ -140,7 +185,7 @@ class RelayService {
       }
       final payload = decoded['payload'];
       if (payload is! Map) return;
-      final message = _crypto!.open(payload.cast<String, dynamic>());
+      final message = await _crypto!.open(payload.cast<String, dynamic>());
       _events.add(RelayEvent(message.type, message.data));
     } catch (error, stack) {
       debugPrint('CodexNomad relay frame handling failed: $error\n$stack');
@@ -149,11 +194,21 @@ class RelayService {
   }
 
   Future<void> close() async {
+    await _closeSocket();
+    _crypto?.dispose();
+    _crypto = null;
+    _pairing = null;
+  }
+
+  Future<void> _closeSocket() async {
     _pingTimer?.cancel();
     _pingTimer = null;
     await _channel?.sink.close();
     _channel = null;
-    _crypto?.dispose();
-    _crypto = null;
+  }
+
+  String _deviceIdForPublicKey(String publicKey) {
+    final prefixLength = publicKey.length < 22 ? publicKey.length : 22;
+    return 'mobile_${publicKey.substring(0, prefixLength)}';
   }
 }

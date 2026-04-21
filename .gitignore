@@ -10,4 +10,3 @@ vendor/happy/
 apps/android/flutter-app/.dart_tool/
 apps/android/flutter-app/build/
 apps/android/flutter-app/.flutter-plugins*
-apps/android/flutter-app/pubspec.lock

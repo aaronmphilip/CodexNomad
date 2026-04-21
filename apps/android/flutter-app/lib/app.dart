@@ -1,6 +1,7 @@
 import 'package:codex_nomad/core/theme/app_theme.dart';
 import 'package:codex_nomad/features/home/home_screen.dart';
 import 'package:codex_nomad/features/live/live_session_screen.dart';
+import 'package:codex_nomad/features/machines/machines_screen.dart';
 import 'package:codex_nomad/features/qr/qr_scanner_screen.dart';
 import 'package:codex_nomad/features/settings/settings_screen.dart';
 import 'package:flutter/material.dart';
@@ -16,6 +17,7 @@ class CodexNomadApp extends StatelessWidget {
         GoRoute(path: '/', builder: (_, __) => const HomeScreen()),
         GoRoute(path: '/scan', builder: (_, __) => const QrScannerScreen()),
         GoRoute(path: '/live', builder: (_, __) => const LiveSessionScreen()),
+        GoRoute(path: '/machines', builder: (_, __) => const MachinesScreen()),
         GoRoute(path: '/settings', builder: (_, __) => const SettingsScreen()),
       ],
     );
@@ -25,7 +27,7 @@ class CodexNomadApp extends StatelessWidget {
       title: 'Codex Nomad',
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
-      themeMode: ThemeMode.system,
+      themeMode: ThemeMode.dark,
       routerConfig: router,
     );
   }

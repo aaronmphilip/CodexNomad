@@ -47,8 +47,11 @@ type secureSender struct {
 	sessionID string
 	kp        e2ee.KeyPair
 	peer      [32]byte
+	peerKey   string
+	peerDevID string
 	hasPeer   bool
 	seq       uint64
+	lastRecv  uint64
 	outbound  chan<- relay.WireMessage
 	buffer    []queuedEvent
 	logger    *log.Logger
@@ -95,12 +98,14 @@ func run(parent context.Context, cfg config.Config, agent Agent, args []string, 
 	publicKey := e2ee.EncodePublicKey(kp.Public)
 	inbound := make(chan relay.WireMessage, 256)
 	outbound := make(chan relay.WireMessage, 256)
+	devices := newDeviceRegistry(cfg.ConfigDir)
 	sender := &secureSender{
 		sessionID: sessionID,
 		kp:        kp,
 		outbound:  outbound,
 		logger:    logger.Logger,
 	}
+	permissions := newPermissionDetector(agent)
 
 	relayErr := make(chan error, 1)
 	client := relay.Client{
@@ -158,14 +163,38 @@ func run(parent context.Context, cfg config.Config, agent Agent, args []string, 
 			"stream":   "pty",
 			"data":     base64.RawStdEncoding.EncodeToString(chunk),
 		}, true)
+		if event, ok := permissions.Observe(chunk); ok {
+			sender.Send("permission_requested", map[string]any{
+				"id":      event.ID,
+				"agent":   agent,
+				"title":   event.Title,
+				"detail":  event.Detail,
+				"risk":    event.Risk,
+				"actions": []string{"approve_once", "reject", "interrupt"},
+			}, true)
+		}
 	})
 	if err != nil {
 		return err
 	}
 
-	go handleInbound(ctx, inbound, outbound, sender, proc, workdir, expires, logger.Logger)
+	go handleInbound(ctx, inbound, outbound, sender, proc, workdir, expires, devices, logger.Logger)
 	go files.Poll(ctx, workdir, 2*time.Second, func(snap files.Snapshot) {
 		sender.Send("file_snapshot", snap, true)
+		if len(snap.Files) == 0 {
+			return
+		}
+		patch, err := files.GitDiff(workdir, 256*1024)
+		if err != nil || len(patch) == 0 {
+			return
+		}
+		sender.Send("diff_ready", map[string]any{
+			"file_path": "Working tree",
+			"summary":   fmt.Sprintf("%d changed %s", len(snap.Files), plural("file", len(snap.Files))),
+			"encoding":  "base64",
+			"patch":     base64.RawStdEncoding.EncodeToString(patch),
+			"files":     snap.Files,
+		}, true)
 	})
 
 	sender.Send("session_started", map[string]any{
@@ -175,7 +204,12 @@ func run(parent context.Context, cfg config.Config, agent Agent, args []string, 
 		"server_id":  opts.ServerID,
 		"cwd":        workdir,
 		"relay_url":  cfg.RelayURL,
-		"cloud":      cloudInfo(),
+		"machine": map[string]any{
+			"id":   cfg.MachineID,
+			"name": cfg.MachineName,
+			"os":   cfg.MachineOS,
+		},
+		"cloud": cloudInfo(),
 	}, true)
 
 	err = proc.Wait()
@@ -194,14 +228,17 @@ func run(parent context.Context, cfg config.Config, agent Agent, args []string, 
 
 func makePairingPayload(cfg config.Config, agent Agent, sessionID, publicKey string, expires time.Time) qr.PairingPayload {
 	return qr.PairingPayload{
-		Version:   1,
-		SessionID: sessionID,
-		Agent:     string(agent),
-		Mode:      cfg.Mode,
-		RelayURL:  cfg.RelayURL,
-		PublicKey: publicKey,
-		CreatedAt: time.Now().UTC().Format(time.RFC3339),
-		ExpiresAt: expires.Format(time.RFC3339),
+		Version:     1,
+		SessionID:   sessionID,
+		Agent:       string(agent),
+		Mode:        cfg.Mode,
+		RelayURL:    cfg.RelayURL,
+		PublicKey:   publicKey,
+		MachineID:   cfg.MachineID,
+		MachineName: cfg.MachineName,
+		MachineOS:   cfg.MachineOS,
+		CreatedAt:   time.Now().UTC().Format(time.RFC3339),
+		ExpiresAt:   expires.Format(time.RFC3339),
 	}
 }
 
@@ -224,6 +261,9 @@ func printPairingQR(payload qr.PairingPayload) error {
 	fmt.Println("Codex Nomad session ready")
 	fmt.Println("Scan this QR in the Android app. Pairing expires in 10 minutes.")
 	fmt.Printf("Session: %s  Agent: %s  Mode: %s\n", payload.SessionID, payload.Agent, payload.Mode)
+	if payload.MachineName != "" {
+		fmt.Printf("Machine: %s  OS: %s  ID: %s\n", payload.MachineName, payload.MachineOS, payload.MachineID)
+	}
 	return qr.RenderTerminal(os.Stdout, content)
 }
 
@@ -240,7 +280,7 @@ func openFile(path string) error {
 	return cmd.Start()
 }
 
-func handleInbound(ctx context.Context, inbound <-chan relay.WireMessage, outbound chan<- relay.WireMessage, sender *secureSender, proc *terminal.Process, root string, expires time.Time, logger *log.Logger) {
+func handleInbound(ctx context.Context, inbound <-chan relay.WireMessage, outbound chan<- relay.WireMessage, sender *secureSender, proc *terminal.Process, root string, expires time.Time, devices deviceRegistry, logger *log.Logger) {
 	for {
 		select {
 		case <-ctx.Done():
@@ -251,19 +291,41 @@ func handleInbound(ctx context.Context, inbound <-chan relay.WireMessage, outbou
 			}
 			switch msg.Type {
 			case "mobile_hello":
-				if time.Now().UTC().After(expires) {
-					queue(outbound, relay.WireMessage{Type: "pairing_expired", SessionID: sender.sessionID, Role: "daemon"}, logger)
-					continue
-				}
 				pub := msg.PublicKey
 				if pub == "" && len(msg.Payload) > 0 {
 					var p struct {
-						PublicKey string `json:"public_key"`
+						PublicKey  string `json:"public_key"`
+						DeviceID   string `json:"device_id"`
+						DeviceName string `json:"device_name"`
 					}
 					_ = json.Unmarshal(msg.Payload, &p)
 					pub = p.PublicKey
+					msg.DeviceID = p.DeviceID
+					msg.DeviceName = p.DeviceName
 				}
-				if err := sender.SetPeer(pub); err != nil {
+				if msg.DeviceID == "" {
+					queue(outbound, relay.WireMessage{Type: "device_identity_required", SessionID: sender.sessionID, Role: "daemon"}, logger)
+					continue
+				}
+				knownDevice := devices.IsAuthorized(msg.DeviceID, pub)
+				if time.Now().UTC().After(expires) && !knownDevice {
+					queue(outbound, relay.WireMessage{Type: "pairing_expired", SessionID: sender.sessionID, Role: "daemon"}, logger)
+					continue
+				}
+				if _, err := e2ee.ParsePublicKey(pub); err != nil {
+					logger.Printf("invalid mobile public key: %v", err)
+					continue
+				}
+				if !knownDevice {
+					if err := devices.Authorize(msg.DeviceID, msg.DeviceName, pub); err != nil {
+						logger.Printf("authorize mobile device failed: %v", err)
+						queue(outbound, relay.WireMessage{Type: "device_authorization_failed", SessionID: sender.sessionID, Role: "daemon"}, logger)
+						continue
+					}
+				} else if err := devices.Touch(msg.DeviceID); err != nil {
+					logger.Printf("touch mobile device failed: %v", err)
+				}
+				if err := sender.SetPeer(pub, msg.DeviceID); err != nil {
 					logger.Printf("invalid mobile public key: %v", err)
 					continue
 				}
@@ -272,10 +334,15 @@ func handleInbound(ctx context.Context, inbound <-chan relay.WireMessage, outbou
 					SessionID: sender.sessionID,
 					Role:      "daemon",
 					PublicKey: e2ee.EncodePublicKey(sender.kp.Public),
+					DeviceID:  msg.DeviceID,
 				}, logger)
-				sender.Send("session_ready", map[string]any{"session_id": sender.sessionID}, false)
+				sender.Send("session_ready", map[string]any{
+					"session_id":  sender.sessionID,
+					"device_id":   msg.DeviceID,
+					"device_name": msg.DeviceName,
+				}, false)
 			case "ciphertext":
-				if err := handleCiphertext(msg, sender, proc, root); err != nil {
+				if err := handleCiphertext(msg, sender, proc, root, devices); err != nil {
 					logger.Printf("mobile command failed: %v", err)
 					sender.Send("error", map[string]any{"message": err.Error()}, false)
 				}
@@ -287,7 +354,11 @@ func handleInbound(ctx context.Context, inbound <-chan relay.WireMessage, outbou
 	}
 }
 
-func handleCiphertext(msg relay.WireMessage, sender *secureSender, proc *terminal.Process, root string) error {
+func handleCiphertext(msg relay.WireMessage, sender *secureSender, proc *terminal.Process, root string, devices deviceRegistry) error {
+	deviceID, peerKey, ok := sender.PeerIdentity()
+	if !ok || !devices.IsAuthorized(deviceID, peerKey) {
+		return errors.New("mobile device is not authorized")
+	}
 	var env e2ee.Envelope
 	if err := json.Unmarshal(msg.Payload, &env); err != nil {
 		return err
@@ -363,20 +434,31 @@ func handleCiphertext(msg relay.WireMessage, sender *secureSender, proc *termina
 	return nil
 }
 
-func (s *secureSender) SetPeer(encoded string) error {
+func (s *secureSender) SetPeer(encoded, deviceID string) error {
 	peer, err := e2ee.ParsePublicKey(encoded)
 	if err != nil {
 		return err
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if !s.hasPeer || s.peerKey != encoded {
+		s.lastRecv = 0
+	}
 	s.peer = peer
+	s.peerKey = encoded
+	s.peerDevID = deviceID
 	s.hasPeer = true
 	for _, ev := range s.buffer {
 		s.sendLocked(ev.typ, ev.data)
 	}
 	s.buffer = nil
 	return nil
+}
+
+func (s *secureSender) PeerIdentity() (string, string, bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.peerDevID, s.peerKey, s.hasPeer
 }
 
 func (s *secureSender) Send(typ string, data any, bufferUntilPaired bool) {
@@ -401,7 +483,15 @@ func (s *secureSender) Open(env e2ee.Envelope) (e2ee.PlainMessage, error) {
 	if !s.hasPeer {
 		return e2ee.PlainMessage{}, errors.New("mobile peer has not completed handshake")
 	}
-	return e2ee.Open(s.kp, s.peer, env)
+	plain, err := e2ee.Open(s.kp, s.peer, env)
+	if err != nil {
+		return e2ee.PlainMessage{}, err
+	}
+	if env.Seq <= s.lastRecv {
+		return e2ee.PlainMessage{}, errors.New("replayed or out-of-order mobile message")
+	}
+	s.lastRecv = env.Seq
+	return plain, nil
 }
 
 func (s *secureSender) sendLocked(typ string, data any) {
@@ -451,6 +541,13 @@ func errString(err error) string {
 		return ""
 	}
 	return err.Error()
+}
+
+func plural(word string, count int) string {
+	if count == 1 {
+		return word
+	}
+	return word + "s"
 }
 
 func cloudInfo() map[string]any {

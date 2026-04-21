@@ -1,8 +1,9 @@
 import 'dart:convert';
+import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:codex_nomad/core/utils/base64x.dart';
-import 'package:sodium/sodium.dart';
+import 'package:cryptography/cryptography.dart';
 
 class EncryptedMessage {
   const EncryptedMessage({
@@ -17,70 +18,123 @@ class EncryptedMessage {
 }
 
 class CryptoService {
-  CryptoService._(this._sodium, this._keyPair);
+  CryptoService._({
+    required X25519 x25519,
+    required Xchacha20 cipher,
+    required SimpleKeyPair keyPair,
+    required SimplePublicKey publicKey,
+    required int initialSequence,
+  })  : _x25519 = x25519,
+        _cipher = cipher,
+        _keyPair = keyPair,
+        _publicKey = publicKey,
+        _seq = initialSequence;
 
-  static Future<CryptoService> create() async {
-    final sodium = await SodiumInit.init();
-    final keyPair = sodium.crypto.box.keyPair();
-    return CryptoService._(sodium, keyPair);
+  static Future<CryptoService> create({
+    Uint8List? seed,
+    int initialSequence = 0,
+  }) async {
+    final x25519 = X25519();
+    final keySeed = seed ?? _randomBytes(boxSeedBytes);
+    final keyPair = await x25519.newKeyPairFromSeed(keySeed);
+    final publicKey = await keyPair.extractPublicKey();
+    return CryptoService._(
+      x25519: x25519,
+      cipher: Xchacha20.poly1305Aead(),
+      keyPair: keyPair,
+      publicKey: publicKey,
+      initialSequence: initialSequence,
+    );
   }
 
-  final Sodium _sodium;
-  final KeyPair _keyPair;
-  Uint8List? _peerPublicKey;
-  int _seq = 0;
+  static int get boxSeedBytes => 32;
 
-  String get publicKey => base64UrlNoPadEncode(_keyPair.publicKey);
+  final X25519 _x25519;
+  final Xchacha20 _cipher;
+  final SimpleKeyPair _keyPair;
+  final SimplePublicKey _publicKey;
+  SimplePublicKey? _peerPublicKey;
+  SecretKey? _sharedKey;
+  int _seq;
+  int _lastPeerSeq = 0;
 
-  void setPeerPublicKey(String encoded) {
-    _peerPublicKey = base64UrlNoPadDecode(encoded);
+  String get publicKey => base64UrlNoPadEncode(_publicKey.bytes);
+  int get sequence => _seq;
+
+  Future<void> setPeerPublicKey(String encoded) async {
+    final peer = SimplePublicKey(
+      base64UrlNoPadDecode(encoded),
+      type: KeyPairType.x25519,
+    );
+    _peerPublicKey = peer;
+    _sharedKey = await _x25519.sharedSecretKey(
+      keyPair: _keyPair,
+      remotePublicKey: peer,
+    );
   }
 
-  Map<String, dynamic> seal({
+  Future<Map<String, dynamic>> seal({
     required String sessionId,
     required String type,
     required Map<String, dynamic> data,
-  }) {
-    final peer = _peerPublicKey;
-    if (peer == null) {
+  }) async {
+    final key = _sharedKey;
+    if (key == null || _peerPublicKey == null) {
       throw StateError('Remote public key is missing.');
     }
     _seq += 1;
+    final sequence = _seq;
     final plain = utf8.encode(jsonEncode({
       'type': type,
       'sid': sessionId,
+      'seq': sequence,
       'sent_at': DateTime.now().toUtc().toIso8601String(),
       'data': data,
     }));
-    final nonce = _sodium.randombytes.buf(_sodium.crypto.box.nonceBytes);
-    final cipher = _sodium.crypto.box.easy(
-      message: Uint8List.fromList(plain),
+    final nonce = _randomBytes(_cipher.nonceLength);
+    final box = await _cipher.encrypt(
+      plain,
+      secretKey: key,
       nonce: nonce,
-      publicKey: peer,
-      secretKey: _keyPair.secretKey,
     );
     return {
       'v': 1,
       'sid': sessionId,
       'sender': 'mobile',
-      'seq': _seq,
-      'nonce': base64UrlNoPadEncode(nonce),
-      'ciphertext': base64UrlNoPadEncode(cipher),
+      'seq': sequence,
+      'nonce': base64UrlNoPadEncode(box.nonce),
+      'ciphertext': base64UrlNoPadEncode(box.concatenation(nonce: false)),
     };
   }
 
-  EncryptedMessage open(Map<String, dynamic> envelope) {
-    final peer = _peerPublicKey;
-    if (peer == null) {
+  Future<EncryptedMessage> open(Map<String, dynamic> envelope) async {
+    final key = _sharedKey;
+    if (key == null || _peerPublicKey == null) {
       throw StateError('Remote public key is missing.');
     }
-    final plain = _sodium.crypto.box.openEasy(
-      cipherText: base64UrlNoPadDecode(envelope['ciphertext'] as String),
-      nonce: base64UrlNoPadDecode(envelope['nonce'] as String),
-      publicKey: peer,
-      secretKey: _keyPair.secretKey,
+    final envelopeSeq = _readInt(envelope['seq']);
+    final combined = base64UrlNoPadDecode(envelope['ciphertext'] as String);
+    final boxParts = SecretBox.fromConcatenation(
+      combined,
+      nonceLength: 0,
+      macLength: _cipher.macAlgorithm.macLength,
+      copy: false,
     );
+    final box = SecretBox(
+      boxParts.cipherText,
+      nonce: base64UrlNoPadDecode(envelope['nonce'] as String),
+      mac: boxParts.mac,
+    );
+    final plain = await _cipher.decrypt(box, secretKey: key);
     final json = jsonDecode(utf8.decode(plain)) as Map<String, dynamic>;
+    final plainSeq = _readInt(json['seq']);
+    if (plainSeq != envelopeSeq) {
+      throw StateError('Encrypted sequence does not match envelope.');
+    }
+    if (envelopeSeq <= _lastPeerSeq) {
+      throw StateError('Replayed or out-of-order agent message.');
+    }
+    _lastPeerSeq = envelopeSeq;
     return EncryptedMessage(
       type: json['type'] as String,
       sessionId: json['sid'] as String,
@@ -89,6 +143,20 @@ class CryptoService {
   }
 
   void dispose() {
-    _keyPair.dispose();
+    _keyPair.destroy();
+  }
+
+  int _readInt(Object? value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) return int.tryParse(value) ?? 0;
+    return 0;
+  }
+
+  static Uint8List _randomBytes(int length) {
+    final random = Random.secure();
+    return Uint8List.fromList(
+      List<int>.generate(length, (_) => random.nextInt(256)),
+    );
   }
 }

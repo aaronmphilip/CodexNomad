@@ -15,11 +15,13 @@ import (
 )
 
 type WireMessage struct {
-	Type      string          `json:"type"`
-	SessionID string          `json:"sid"`
-	Role      string          `json:"role,omitempty"`
-	PublicKey string          `json:"public_key,omitempty"`
-	Payload   json.RawMessage `json:"payload,omitempty"`
+	Type       string          `json:"type"`
+	SessionID  string          `json:"sid"`
+	Role       string          `json:"role,omitempty"`
+	PublicKey  string          `json:"public_key,omitempty"`
+	DeviceID   string          `json:"device_id,omitempty"`
+	DeviceName string          `json:"device_name,omitempty"`
+	Payload    json.RawMessage `json:"payload,omitempty"`
 }
 
 type Hub struct {

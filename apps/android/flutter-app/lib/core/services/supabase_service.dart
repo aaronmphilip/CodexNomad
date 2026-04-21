@@ -55,6 +55,8 @@ class SupabaseService {
         status: ConnectionStatus.ready,
         lastActivity: DateTime.tryParse(json['updated_at'] as String? ?? '') ??
             DateTime.now(),
+        machineName: json['machine_name'] as String? ?? 'Local machine',
+        machineOs: json['machine_os'] as String? ?? '',
       );
     }).toList();
   }

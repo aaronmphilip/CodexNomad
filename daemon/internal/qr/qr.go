@@ -11,14 +11,17 @@ import (
 )
 
 type PairingPayload struct {
-	Version   int    `json:"v"`
-	SessionID string `json:"sid"`
-	Agent     string `json:"agent"`
-	Mode      string `json:"mode"`
-	RelayURL  string `json:"relay_url"`
-	PublicKey string `json:"public_key"`
-	CreatedAt string `json:"created_at"`
-	ExpiresAt string `json:"expires_at"`
+	Version     int    `json:"v"`
+	SessionID   string `json:"sid"`
+	Agent       string `json:"agent"`
+	Mode        string `json:"mode"`
+	RelayURL    string `json:"relay_url"`
+	PublicKey   string `json:"public_key"`
+	MachineID   string `json:"machine_id,omitempty"`
+	MachineName string `json:"machine_name,omitempty"`
+	MachineOS   string `json:"machine_os,omitempty"`
+	CreatedAt   string `json:"created_at"`
+	ExpiresAt   string `json:"expires_at"`
 }
 
 func EncodePayload(payload PairingPayload) (string, error) {

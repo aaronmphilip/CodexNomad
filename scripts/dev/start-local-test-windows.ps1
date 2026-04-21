@@ -37,6 +37,13 @@ function Resolve-AgentBinary {
   }
 
   $cmdName = if ($AgentName -eq 'claude') { 'claude' } else { 'codex' }
+  if ($AgentName -eq 'claude') {
+    $claudeCmd = Join-Path $env:APPDATA 'npm\claude.cmd'
+    if (Test-Path $claudeCmd) {
+      return $claudeCmd
+    }
+  }
+
   $cmd = Get-Command $cmdName -ErrorAction SilentlyContinue | Select-Object -First 1
   if ($cmd) {
     return $cmd.Source
@@ -45,13 +52,6 @@ function Resolve-AgentBinary {
   $whereResult = & where.exe $cmdName 2>$null | Select-Object -First 1
   if (-not [string]::IsNullOrWhiteSpace($whereResult)) {
     return $whereResult
-  }
-
-  if ($AgentName -eq 'claude') {
-    $claudeCmd = Join-Path $env:APPDATA 'npm\claude.cmd'
-    if (Test-Path $claudeCmd) {
-      return $claudeCmd
-    }
   }
 
   return $null

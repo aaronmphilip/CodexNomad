@@ -39,6 +39,7 @@ Production verification on Windows:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\ci\verify-production-windows.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\qa\local-e2e-smoke-windows.ps1
 ```
 
 Headless cloud worker command used by provisioned droplets:

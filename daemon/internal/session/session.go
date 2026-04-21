@@ -247,6 +247,9 @@ func printPairingQR(payload qr.PairingPayload) error {
 	if err != nil {
 		return err
 	}
+	if os.Getenv("CODEXNOMAD_PRINT_PAIRING_URI") == "1" {
+		fmt.Printf("Pairing URI: %s\n", content)
+	}
 	pngPath := filepath.Join(os.TempDir(), "codexnomad-"+payload.SessionID+".png")
 	if err := qr.WritePNG(content, pngPath, 768); err == nil {
 		fmt.Printf("QR image: %s\n", pngPath)
@@ -263,6 +266,9 @@ func printPairingQR(payload qr.PairingPayload) error {
 	fmt.Printf("Session: %s  Agent: %s  Mode: %s\n", payload.SessionID, payload.Agent, payload.Mode)
 	if payload.MachineName != "" {
 		fmt.Printf("Machine: %s  OS: %s  ID: %s\n", payload.MachineName, payload.MachineOS, payload.MachineID)
+	}
+	if os.Getenv("CODEXNOMAD_SUPPRESS_TERMINAL_QR") == "1" {
+		return nil
 	}
 	return qr.RenderTerminal(os.Stdout, content)
 }

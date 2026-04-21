@@ -18,6 +18,10 @@ if ([string]::IsNullOrWhiteSpace($localIP)) {
 $port = if ($env:PORT) { $env:PORT } else { '8080' }
 $env:CODEXNOMAD_RELAY_URL = "ws://$localIP`:$port/v1/relay"
 $env:CODEXNOMAD_RELAY_TOKEN = if ($env:CODEXNOMAD_RELAY_TOKEN) { $env:CODEXNOMAD_RELAY_TOKEN } else { '' }
+$claudeCmd = Join-Path $env:APPDATA 'npm\claude.cmd'
+if (Test-Path $claudeCmd) {
+  $env:CODEXNOMAD_CLAUDE_BIN = $claudeCmd
+}
 
 Write-Host "Starting Claude session through $env:CODEXNOMAD_RELAY_URL"
 & $exe claude

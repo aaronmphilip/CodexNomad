@@ -163,7 +163,39 @@ func checkOneAgentCLI(name, bin string, fatal bool) doctorCheck {
 			Fatal:  fatal,
 		}
 	}
-	return doctorCheck{Name: name, Status: doctorOK, Detail: path}
+	ctx, cancel := context.WithTimeout(context.Background(), 3500*time.Millisecond)
+	defer cancel()
+	out, err := exec.CommandContext(ctx, path, "--version").CombinedOutput()
+	if err != nil {
+		status := doctorWarn
+		if fatal {
+			status = doctorFail
+		}
+		detail := strings.TrimSpace(string(out))
+		if detail == "" {
+			detail = err.Error()
+		} else {
+			detail = detail + ": " + err.Error()
+		}
+		return doctorCheck{
+			Name:   name,
+			Status: status,
+			Detail: fmt.Sprintf("%s found but not runnable: %s", path, detail),
+			Fatal:  fatal,
+		}
+	}
+	version := firstLine(strings.TrimSpace(string(out)))
+	if version == "" {
+		version = "version check passed"
+	}
+	return doctorCheck{Name: name, Status: doctorOK, Detail: fmt.Sprintf("%s (%s)", path, version)}
+}
+
+func firstLine(text string) string {
+	if i := strings.IndexAny(text, "\r\n"); i >= 0 {
+		return strings.TrimSpace(text[:i])
+	}
+	return strings.TrimSpace(text)
 }
 
 func relayHealthURL(raw string) (string, error) {

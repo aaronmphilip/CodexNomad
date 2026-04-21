@@ -74,6 +74,7 @@ Service/install:
 - Hosted installer script ready for `curl -fsSL https://codexnomad.pro/install | sh`.
 - GitHub Actions CI for daemon, relay, Flutter tests, debug APK, and release AAB.
 - Local production verification gate at `scripts/ci/verify-production-windows.ps1`.
+- Local E2E smoke gate at `scripts/qa/local-e2e-smoke-windows.ps1`.
 
 Docs:
 

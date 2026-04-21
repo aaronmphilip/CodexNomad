@@ -10,6 +10,12 @@ Before a store build or public release:
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\ci\verify-production-windows.ps1 -RequireCleanWorktree
 ```
 
+Before real phone QA:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\qa\local-e2e-smoke-windows.ps1
+```
+
 GitHub Actions runs the same core checks on `main` and pull requests:
 
 - daemon Go formatting, tests, and build
@@ -19,6 +25,8 @@ GitHub Actions runs the same core checks on `main` and pull requests:
 - Flutter tests
 - Android debug APK build
 - Android release AAB build with a CI-only signing key
+
+The local E2E smoke script also proves the relay, daemon, pairing URI, E2EE handshake, encrypted stdin, encrypted terminal output, and plaintext-leak marker check without a physical phone.
 
 ## Local Mode Release Bar
 

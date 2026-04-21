@@ -140,7 +140,14 @@ class _StatusStrip extends StatelessWidget {
           Icon(Icons.circle, size: 10, color: color),
           const SizedBox(width: 8),
           Expanded(
-              child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis)),
+            child: Text(
+              error == null || status == ConnectionStatus.ready
+                  ? label
+                  : '$label: $error',
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
         ],
       ),
     );

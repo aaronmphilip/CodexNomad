@@ -128,13 +128,22 @@ class SessionController extends ChangeNotifier {
 
   void _handleEvent(RelayEvent event) {
     switch (event.type) {
+      case 'connecting':
+        _state = _state.copyWith(
+          status: ConnectionStatus.connecting,
+          error: event.data['url'] as String?,
+        );
+        break;
       case 'session_ready':
         _state = _state.copyWith(status: ConnectionStatus.ready);
         final pairing = _state.pairing;
         if (pairing != null) _remember(pairing, ConnectionStatus.ready);
         break;
       case 'disconnect':
-        _state = _state.copyWith(status: ConnectionStatus.disconnected);
+        _state = _state.copyWith(
+          status: ConnectionStatus.disconnected,
+          error: event.data['error'] as String?,
+        );
         break;
       case 'terminal_output':
         final text = utf8.decode(

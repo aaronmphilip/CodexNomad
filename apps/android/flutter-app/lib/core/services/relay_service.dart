@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:codex_nomad/core/config/app_config.dart';
 import 'package:codex_nomad/core/services/crypto_service.dart';
 import 'package:codex_nomad/models/pairing_payload.dart';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:web_socket_channel/web_socket_channel.dart';
 
@@ -36,15 +37,20 @@ class RelayService {
       ..setPeerPublicKey(pairing.publicKey);
 
     final uri = await _relayUri(pairing);
+    debugPrint('CodexNomad relay connect: $uri');
+    _events.add(RelayEvent('connecting', {'url': uri.toString()}));
     _channel = WebSocketChannel.connect(uri);
 
     _channel!.stream.listen(
       _handleRaw,
       onError: (dynamic error) {
+        debugPrint('CodexNomad relay error: $error');
         _events.add(RelayEvent('disconnect', {'error': '$error'}));
       },
       onDone: () {
-        _events.add(const RelayEvent('disconnect', {}));
+        debugPrint('CodexNomad relay closed');
+        _events.add(
+            const RelayEvent('disconnect', {'error': 'Relay socket closed'}));
       },
       cancelOnError: false,
     );
@@ -116,24 +122,30 @@ class RelayService {
   }
 
   void _handleRaw(dynamic raw) {
-    final decoded = jsonDecode(raw as String) as Map<String, dynamic>;
-    final type = decoded['type'] as String? ?? '';
-    if (type == 'daemon_ready') {
-      final key = decoded['public_key'] as String?;
-      if (key != null && key.isNotEmpty) {
-        _crypto?.setPeerPublicKey(key);
+    try {
+      final decoded = jsonDecode(raw as String) as Map<String, dynamic>;
+      final type = decoded['type'] as String? ?? '';
+      debugPrint('CodexNomad relay frame: $type');
+      if (type == 'daemon_ready') {
+        final key = decoded['public_key'] as String?;
+        if (key != null && key.isNotEmpty) {
+          _crypto?.setPeerPublicKey(key);
+        }
+        _events.add(const RelayEvent('session_ready', {}));
+        return;
       }
-      _events.add(const RelayEvent('session_ready', {}));
-      return;
+      if (type != 'ciphertext') {
+        _events.add(RelayEvent(type, decoded));
+        return;
+      }
+      final payload = decoded['payload'];
+      if (payload is! Map) return;
+      final message = _crypto!.open(payload.cast<String, dynamic>());
+      _events.add(RelayEvent(message.type, message.data));
+    } catch (error, stack) {
+      debugPrint('CodexNomad relay frame handling failed: $error\n$stack');
+      _events.add(RelayEvent('error', {'message': '$error'}));
     }
-    if (type != 'ciphertext') {
-      _events.add(RelayEvent(type, decoded));
-      return;
-    }
-    final payload = decoded['payload'];
-    if (payload is! Map) return;
-    final message = _crypto!.open(payload.cast<String, dynamic>());
-    _events.add(RelayEvent(message.type, message.data));
   }
 
   Future<void> close() async {

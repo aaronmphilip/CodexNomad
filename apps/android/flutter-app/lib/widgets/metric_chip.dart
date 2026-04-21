@@ -18,7 +18,7 @@ class MetricChip extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(8),
-        color: (color ?? scheme.secondary).withOpacity(0.12),
+        color: (color ?? scheme.secondary).withValues(alpha: 0.12),
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),

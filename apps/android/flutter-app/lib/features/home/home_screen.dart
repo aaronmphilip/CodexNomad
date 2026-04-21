@@ -37,7 +37,8 @@ class HomeScreen extends ConsumerWidget {
             const SizedBox(height: 20),
             Row(
               children: [
-                Text('Active Sessions', style: Theme.of(context).textTheme.titleLarge),
+                Text('Active Sessions',
+                    style: Theme.of(context).textTheme.titleLarge),
                 const Spacer(),
                 Container(
                   width: 10,
@@ -80,7 +81,8 @@ class HomeScreen extends ConsumerWidget {
             const SizedBox(height: 22),
             if (!auth.configured)
               _AuthNudge(
-                text: 'Supabase auth is not configured. Local sessions still work.',
+                text:
+                    'Supabase auth is not configured. Local sessions still work.',
                 icon: Icons.info_outline_rounded,
               )
             else if (!auth.signedIn)
@@ -106,8 +108,8 @@ class _HeroPanel extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(8),
-        color: scheme.primaryContainer.withOpacity(0.38),
-        border: Border.all(color: scheme.primary.withOpacity(0.16)),
+        color: scheme.primaryContainer.withValues(alpha: 0.38),
+        border: Border.all(color: scheme.primary.withValues(alpha: 0.16)),
       ),
       padding: const EdgeInsets.all(20),
       child: Column(

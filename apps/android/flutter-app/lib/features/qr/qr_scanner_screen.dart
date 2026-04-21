@@ -23,7 +23,9 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
           MobileScanner(
             onDetect: (capture) async {
               if (_handled) return;
-              final value = capture.barcodes.isEmpty ? null : capture.barcodes.first.rawValue;
+              final value = capture.barcodes.isEmpty
+                  ? null
+                  : capture.barcodes.first.rawValue;
               if (value == null) return;
               _handled = true;
               try {
@@ -46,7 +48,10 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(8),
-                color: Theme.of(context).colorScheme.surface.withOpacity(0.92),
+                color: Theme.of(context)
+                    .colorScheme
+                    .surface
+                    .withValues(alpha: 0.92),
               ),
               child: const Row(
                 children: [

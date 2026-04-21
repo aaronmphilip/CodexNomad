@@ -20,14 +20,15 @@ class DiffCard extends StatelessWidget {
         tilePadding: const EdgeInsets.symmetric(horizontal: 14),
         childrenPadding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
         leading: Icon(Icons.difference_rounded, color: scheme.primary),
-        title: Text(model.filePath, maxLines: 1, overflow: TextOverflow.ellipsis),
+        title:
+            Text(model.filePath, maxLines: 1, overflow: TextOverflow.ellipsis),
         subtitle: Text(model.summary),
         children: [
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: scheme.surface.withOpacity(0.66),
+              color: scheme.surface.withValues(alpha: 0.66),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(

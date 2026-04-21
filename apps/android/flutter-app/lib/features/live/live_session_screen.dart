@@ -134,12 +134,13 @@ class _StatusStrip extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      color: color.withOpacity(0.12),
+      color: color.withValues(alpha: 0.12),
       child: Row(
         children: [
           Icon(Icons.circle, size: 10, color: color),
           const SizedBox(width: 8),
-          Expanded(child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis)),
+          Expanded(
+              child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis)),
         ],
       ),
     );

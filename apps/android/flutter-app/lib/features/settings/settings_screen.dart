@@ -56,7 +56,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               onChanged: (value) => setState(() => _notifications = value),
               title: const Text('Notifications'),
               subtitle: const Text('Approval and session update alerts'),
-              secondary: Icon(Icons.notifications_active_rounded, color: scheme.primary),
+              secondary: Icon(Icons.notifications_active_rounded,
+                  color: scheme.primary),
             ),
           ),
           const SizedBox(height: 12),
@@ -64,7 +65,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             child: ListTile(
               leading: Icon(Icons.key_rounded, color: scheme.primary),
               title: const Text('API Key Management'),
-              subtitle: const Text('Keys stay on the daemon. Mobile only sends encrypted commands.'),
+              subtitle: const Text(
+                  'Keys stay on the daemon. Mobile only sends encrypted commands.'),
             ),
           ),
           const SizedBox(height: 20),
@@ -74,7 +76,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             const Card(
               child: Padding(
                 padding: EdgeInsets.all(16),
-                child: Text('Supabase is not configured. Add SUPABASE_URL and SUPABASE_ANON_KEY at build time.'),
+                child: Text(
+                    'Supabase is not configured. Add SUPABASE_URL and SUPABASE_ANON_KEY at build time.'),
               ),
             )
           else if (auth.signedIn)

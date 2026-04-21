@@ -59,7 +59,8 @@ class _EditorPaneState extends State<EditorPane> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.code_rounded, size: 42, color: Theme.of(context).colorScheme.primary),
+              Icon(Icons.code_rounded,
+                  size: 42, color: Theme.of(context).colorScheme.primary),
               const SizedBox(height: 12),
               const Text('Open a file from the Files tab to edit it.'),
             ],
@@ -84,7 +85,8 @@ class _EditorPaneState extends State<EditorPane> {
                 ),
               ),
               FilledButton.icon(
-                onPressed: () => widget.controller.saveFile(file.path, _code!.fullText),
+                onPressed: () =>
+                    widget.controller.saveFile(file.path, _code!.fullText),
                 icon: const Icon(Icons.save_rounded),
                 label: const Text('Save & Push'),
               ),
@@ -93,7 +95,8 @@ class _EditorPaneState extends State<EditorPane> {
         ),
         Expanded(
           child: CodeTheme(
-            data: CodeThemeData(styles: dark ? monokaiSublimeTheme : githubTheme),
+            data:
+                CodeThemeData(styles: dark ? monokaiSublimeTheme : githubTheme),
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(12),
               child: CodeField(

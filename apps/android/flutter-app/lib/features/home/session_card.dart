@@ -30,14 +30,18 @@ class SessionCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(summary.agent.label, style: Theme.of(context).textTheme.titleMedium),
+                    Text(summary.agent.label,
+                        style: Theme.of(context).textTheme.titleMedium),
                     const SizedBox(height: 4),
-                    Text('Last activity ${DateFormat.Hm().format(summary.lastActivity)}'),
+                    Text(
+                        'Last activity ${DateFormat.Hm().format(summary.lastActivity)}'),
                   ],
                 ),
               ),
               MetricChip(
-                icon: summary.mode == 'cloud' ? Icons.cloud_done_rounded : Icons.laptop_rounded,
+                icon: summary.mode == 'cloud'
+                    ? Icons.cloud_done_rounded
+                    : Icons.laptop_rounded,
                 label: summary.mode,
               ),
             ],

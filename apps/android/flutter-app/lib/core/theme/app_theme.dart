@@ -30,7 +30,7 @@ class AppTheme {
       cardTheme: CardThemeData(
         elevation: 0,
         margin: EdgeInsets.zero,
-        color: scheme.surfaceContainerHighest.withOpacity(0.72),
+        color: scheme.surfaceContainerHighest.withValues(alpha: 0.72),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
       filledButtonTheme: FilledButtonThemeData(

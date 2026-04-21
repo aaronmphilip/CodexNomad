@@ -26,7 +26,8 @@ class SupabaseService {
   Future<void> sendMagicLink(String email) async {
     final client = _client;
     if (client == null) {
-      throw StateError('Supabase is not configured. Provide SUPABASE_URL and SUPABASE_ANON_KEY.');
+      throw StateError(
+          'Supabase is not configured. Provide SUPABASE_URL and SUPABASE_ANON_KEY.');
     }
     await client.auth.signInWithOtp(email: email);
   }

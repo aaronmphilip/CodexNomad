@@ -44,7 +44,8 @@ class _ChatPaneState extends State<ChatPane> {
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(8),
-                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                      color:
+                          Theme.of(context).colorScheme.surfaceContainerHighest,
                     ),
                     child: Text(
                       chunk.text.trim().isEmpty ? '...' : chunk.text.trim(),
@@ -70,7 +71,8 @@ class _ChatPaneState extends State<ChatPane> {
                         setState(() => _listening = false);
                         if (words != null) _text.text = words;
                       },
-                icon: Icon(_listening ? Icons.hearing_rounded : Icons.mic_rounded),
+                icon: Icon(
+                    _listening ? Icons.hearing_rounded : Icons.mic_rounded),
               ),
               const SizedBox(width: 8),
               Expanded(

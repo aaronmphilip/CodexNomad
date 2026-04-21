@@ -27,14 +27,16 @@ class FileBrowserPane extends StatelessWidget {
           if (changed.isEmpty)
             const _EmptyFiles(text: 'No changed files reported yet.')
           else
-            for (final file in changed) _FileTile(file: file, controller: controller),
+            for (final file in changed)
+              _FileTile(file: file, controller: controller),
           const SizedBox(height: 18),
           Text('Project Files', style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
           if (all.isEmpty)
             const _EmptyFiles(text: 'Pull down to request the project tree.')
           else
-            for (final file in all) _FileTile(file: file, controller: controller),
+            for (final file in all)
+              _FileTile(file: file, controller: controller),
         ],
       ),
     );
@@ -52,7 +54,8 @@ class _FileTile extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     return Card(
       child: ListTile(
-        leading: Icon(Icons.description_rounded, color: file.statusColor(scheme)),
+        leading:
+            Icon(Icons.description_rounded, color: file.statusColor(scheme)),
         title: Text(file.path, maxLines: 1, overflow: TextOverflow.ellipsis),
         subtitle: Text(file.status),
         trailing: IconButton(

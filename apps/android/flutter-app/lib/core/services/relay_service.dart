@@ -40,7 +40,7 @@ class RelayService {
 
     _channel!.stream.listen(
       _handleRaw,
-      onError: (Object error) {
+      onError: (dynamic error) {
         _events.add(RelayEvent('disconnect', {'error': '$error'}));
       },
       onDone: () {
@@ -115,7 +115,7 @@ class RelayService {
     _channel?.sink.add(jsonEncode(message));
   }
 
-  void _handleRaw(Object raw) {
+  void _handleRaw(dynamic raw) {
     final decoded = jsonDecode(raw as String) as Map<String, dynamic>;
     final type = decoded['type'] as String? ?? '';
     if (type == 'daemon_ready') {

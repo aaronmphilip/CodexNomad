@@ -19,8 +19,7 @@ final voiceServiceProvider = Provider<VoiceService>((ref) {
   return VoiceService();
 });
 
-final authControllerProvider =
-    ChangeNotifierProvider<AuthController>((ref) {
+final authControllerProvider = ChangeNotifierProvider<AuthController>((ref) {
   return AuthController(ref.watch(supabaseServiceProvider));
 });
 
@@ -99,7 +98,8 @@ class SessionController extends ChangeNotifier {
 
   Future<void> sendText(String text) async {
     if (text.trim().isEmpty) return;
-    await _relay.sendCommand('stdin', {'text': text.endsWith('\n') ? text : '$text\n'});
+    await _relay
+        .sendCommand('stdin', {'text': text.endsWith('\n') ? text : '$text\n'});
   }
 
   Future<void> interrupt() => _relay.sendCommand('interrupt', {});
@@ -167,7 +167,8 @@ class SessionController extends ChangeNotifier {
           base64StdNoPadDecode(event.data['content'] as String? ?? ''),
           allowMalformed: true,
         );
-        _state = _state.copyWith(openFile: CodeFile(path: path, content: content));
+        _state =
+            _state.copyWith(openFile: CodeFile(path: path, content: content));
         break;
       case 'file_saved':
         requestFiles();

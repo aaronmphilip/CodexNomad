@@ -129,6 +129,7 @@ function Stop-ExistingDaemon {
     schtasks.exe /End /TN CodexNomad 2>$null | Out-Null
   } catch {
   }
+  $global:LASTEXITCODE = 0
 }
 
 function Install-Binary {
@@ -184,6 +185,8 @@ function Run-NonFatal {
     & $Action
   } catch {
     Write-Warning $_.Exception.Message
+  } finally {
+    $global:LASTEXITCODE = 0
   }
 }
 
@@ -248,6 +251,7 @@ try {
   Write-Host "  codexnomad pair"
   Write-Host "or:"
   Write-Host "  codexnomad pair claude"
+  $global:LASTEXITCODE = 0
 } finally {
   Remove-SafeTempDir $tempDir
 }

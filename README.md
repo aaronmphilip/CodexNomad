@@ -4,11 +4,19 @@ Codex Nomad is the Android-first remote-control layer for Codex and Claude Code.
 
 ## Free local mode
 
-Install once:
+Install once on Windows PowerShell:
+
+```powershell
+irm https://codexnomad.pro/install.ps1 | iex
+```
+
+Install once on macOS or Linux:
 
 ```sh
 curl -fsSL https://codexnomad.pro/install | sh
 ```
+
+Running the installer again updates the daemon in place.
 
 Start a Codex session:
 
@@ -33,6 +41,23 @@ codexnomad status
 codexnomad logs
 codexnomad doctor
 codexnomad stop
+```
+
+Local packaging smoke test:
+
+```sh
+sh scripts/release/package-daemon-unix.sh
+CODEXNOMAD_ARCHIVE="$PWD/dist/codexnomad_linux_amd64.tar.gz" \
+CODEXNOMAD_INSTALL_DIR="$PWD/.tools/installer-unix/bin" \
+CODEXNOMAD_NO_SERVICE=1 \
+CODEXNOMAD_SKIP_DOCTOR=1 \
+sh ./install.sh
+```
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\release\package-daemon-windows.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -ArchivePath .\dist\codexnomad_windows_amd64.zip -InstallDir .\.tools\installer-smoke\bin -NoService -NoPath -SkipDoctor
+.\.tools\installer-smoke\bin\codexnomad.exe --help
 ```
 
 Production verification on Windows:

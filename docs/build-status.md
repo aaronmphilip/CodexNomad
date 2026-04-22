@@ -71,7 +71,11 @@ Service/install:
 - Linux systemd user service.
 - macOS launchd agent.
 - Windows scheduled-task autostart fallback.
-- Hosted installer script ready for `curl -fsSL https://codexnomad.pro/install | sh`.
+- Hosted Unix installer ready for `curl -fsSL https://codexnomad.pro/install | sh`.
+- Hosted Windows installer ready for `irm https://codexnomad.pro/install.ps1 | iex`.
+- macOS/Linux daemon release archive packaging.
+- Windows daemon release archive packaging.
+- Unix and Windows installer smoke tests in GitHub Actions.
 - GitHub Actions CI for daemon, relay, Flutter tests, debug APK, and release AAB.
 - Local production verification gate at `scripts/ci/verify-production-windows.ps1`.
 - Local E2E smoke gate at `scripts/qa/local-e2e-smoke-windows.ps1`.

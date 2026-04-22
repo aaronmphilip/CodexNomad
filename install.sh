@@ -1,12 +1,15 @@
 #!/usr/bin/env sh
 set -eu
 
-APP="codexnomad"
-DOMAIN="https://codexnomad.pro"
+DOMAIN="${CODEXNOMAD_DOMAIN:-https://codexnomad.pro}"
 RELEASE_BASE="${CODEXNOMAD_RELEASE_BASE:-$DOMAIN/releases/latest}"
 
 log() {
   printf '%s\n' "$*"
+}
+
+warn() {
+  printf 'warning: %s\n' "$*" >&2
 }
 
 fail() {
@@ -37,6 +40,22 @@ detect_arch() {
   esac
 }
 
+cleanup() {
+  if [ "${tmp:-}" ] && [ -d "$tmp" ]; then
+    case "$tmp" in
+      "${TMPDIR:-/tmp}"/codexnomad-install.*) rm -rf "$tmp" ;;
+    esac
+  fi
+}
+
+add_path_hint() {
+  install_dir="$1"
+  case ":$PATH:" in
+    *":$install_dir:"*) ;;
+    *) log "Add this to PATH if needed: export PATH=\"$install_dir:\$PATH\"" ;;
+  esac
+}
+
 install_posix() {
   os="$1"
   arch="$2"
@@ -48,54 +67,74 @@ install_posix() {
 
   tmp="${TMPDIR:-/tmp}/codexnomad-install.$$"
   mkdir -p "$tmp"
-  trap 'rm -rf "$tmp"' EXIT INT TERM
+  trap cleanup EXIT INT TERM
 
-  url="$RELEASE_BASE/codexnomad_${os}_${arch}.tar.gz"
-  log "Downloading $url"
-  curl -fsSL "$url" -o "$tmp/codexnomad.tar.gz"
-  tar -xzf "$tmp/codexnomad.tar.gz" -C "$tmp"
+  if [ "${CODEXNOMAD_ARCHIVE:-}" ]; then
+    archive="$CODEXNOMAD_ARCHIVE"
+    [ -f "$archive" ] || fail "CODEXNOMAD_ARCHIVE does not exist: $archive"
+    log "Installing from local archive: $archive"
+  else
+    archive="$tmp/codexnomad.tar.gz"
+    url="${RELEASE_BASE%/}/codexnomad_${os}_${arch}.tar.gz"
+    log "Downloading $url"
+    curl -fsSL "$url" -o "$archive"
+  fi
+
+  tar -xzf "$archive" -C "$tmp"
+  [ -f "$tmp/codexnomad" ] || fail "archive does not contain codexnomad"
   chmod 0755 "$tmp/codexnomad"
+
+  if [ -x "$install_dir/codexnomad" ]; then
+    "$install_dir/codexnomad" stop >/dev/null 2>&1 || true
+  fi
   mv "$tmp/codexnomad" "$install_dir/codexnomad"
 
-  case ":$PATH:" in
-    *":$install_dir:"*) ;;
-    *) log "Add this to PATH if needed: export PATH=\"$install_dir:\$PATH\"" ;;
-  esac
+  add_path_hint "$install_dir"
 
-  "$install_dir/codexnomad" install || {
-    log "Autostart setup failed. You can still run: $install_dir/codexnomad start"
-    exit 0
-  }
+  if [ "${CODEXNOMAD_NO_SERVICE:-0}" != "1" ]; then
+    "$install_dir/codexnomad" install || {
+      warn "autostart setup failed; run manually with: $install_dir/codexnomad start"
+    }
+  fi
 
+  if [ "${CODEXNOMAD_SKIP_DOCTOR:-0}" != "1" ]; then
+    "$install_dir/codexnomad" doctor all || {
+      warn "doctor found setup issues; install still completed"
+    }
+  fi
+
+  log ""
   log "Codex Nomad installed."
-  log "Start a session with: codexnomad codex"
+  log "Start a session with: codexnomad pair"
+  log "Or Claude Code with: codexnomad pair claude"
 }
 
 install_windows_from_sh() {
-  arch="$1"
   command -v powershell.exe >/dev/null 2>&1 || fail "Windows install requires powershell.exe"
-  ps='
-  $ErrorActionPreference = "Stop"
-  $base = $env:CODEXNOMAD_RELEASE_BASE
-  if (-not $base) { $base = "https://codexnomad.pro/releases/latest" }
-  $dir = Join-Path $env:LOCALAPPDATA "CodexNomad\bin"
-  New-Item -ItemType Directory -Force -Path $dir | Out-Null
-  $zip = Join-Path $env:TEMP "codexnomad_windows.zip"
-  $url = "$base/codexnomad_windows_'"$arch"'.zip"
-  Invoke-WebRequest -Uri $url -OutFile $zip
-  Expand-Archive -Force -Path $zip -DestinationPath $dir
-  $exe = Join-Path $dir "codexnomad.exe"
-  & $exe install
-  Write-Host "Codex Nomad installed at $exe"
-  '
-  powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "$ps"
+  ps1_path=""
+  for candidate in "$(pwd)/install.ps1" "$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)/install.ps1"; do
+    if [ -f "$candidate" ]; then
+      ps1_path="$candidate"
+      break
+    fi
+  done
+  if [ "$ps1_path" ]; then
+    if command -v cygpath >/dev/null 2>&1; then
+      ps1_path="$(cygpath -w "$ps1_path")"
+    fi
+    powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$ps1_path"
+    return
+  fi
+  script_url="${CODEXNOMAD_INSTALL_PS1_URL:-$DOMAIN/install.ps1}"
+  powershell.exe -NoProfile -ExecutionPolicy Bypass -Command \
+    "iwr -UseBasicParsing '$script_url' | iex"
 }
 
 os="$(detect_os)"
 arch="$(detect_arch)"
 
 if [ "$os" = "windows" ]; then
-  install_windows_from_sh "$arch"
+  install_windows_from_sh
 else
   install_posix "$os" "$arch"
 fi

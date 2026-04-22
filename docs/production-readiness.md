@@ -20,6 +20,10 @@ GitHub Actions runs the same core checks on `main` and pull requests:
 
 - daemon Go formatting, tests, and build
 - relay Go formatting, tests, and build
+- macOS/Linux daemon release archive packaging
+- Unix installer smoke install from a local archive
+- Windows daemon release archive packaging
+- Windows installer smoke install from a local archive
 - Flutter dependency restore
 - Flutter analyze
 - Flutter tests
@@ -65,3 +69,45 @@ Before Google Play internal testing:
 - Put only ignored `android/key.properties` on the release machine.
 - Run `verify-production-windows.ps1 -RequireCleanWorktree`.
 - Upload `apps/android/flutter-app/build/app/outputs/bundle/release/app-release.aab`.
+
+## Desktop Installer Bar
+
+Before publishing `https://codexnomad.pro/install.ps1` or
+`https://codexnomad.pro/install`:
+
+- Build the macOS/Linux daemon archives:
+
+```sh
+sh scripts/release/package-daemon-unix.sh
+```
+
+- Build the Windows daemon archive:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\release\package-daemon-windows.ps1
+```
+
+- Smoke-install without touching the real user PATH or logon task:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 `
+  -ArchivePath .\dist\codexnomad_windows_amd64.zip `
+  -InstallDir .\.tools\installer-smoke\bin `
+  -NoService `
+  -NoPath `
+  -SkipDoctor
+```
+
+- Verify:
+
+```powershell
+.\.tools\installer-smoke\bin\codexnomad.exe --help
+```
+
+The Windows installer is intentionally idempotent. Running it again is the
+update flow: it stops the existing daemon if possible, replaces the binary,
+refreshes PATH if needed, reinstalls the logon task, and runs doctor.
+
+The Unix installer is also intentionally idempotent. Running it again downloads
+the latest archive, stops the existing daemon if possible, replaces the binary,
+refreshes systemd/launchd where supported, and runs doctor.

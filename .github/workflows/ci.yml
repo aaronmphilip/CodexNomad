@@ -47,6 +47,69 @@ jobs:
       - name: Build
         run: go build ./...
 
+  installer-unix:
+    name: Installer / Unix
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: daemon/go.mod
+          cache-dependency-path: daemon/go.sum
+
+      - name: Check installer shell syntax
+        run: sh -n install.sh
+
+      - name: Package Unix daemons
+        run: sh scripts/release/package-daemon-unix.sh
+
+      - name: Smoke install from local archive
+        run: |
+          CODEXNOMAD_ARCHIVE="$PWD/dist/codexnomad_linux_amd64.tar.gz" \
+          CODEXNOMAD_INSTALL_DIR="$PWD/.tools/installer-unix/bin" \
+          CODEXNOMAD_NO_SERVICE=1 \
+          CODEXNOMAD_SKIP_DOCTOR=1 \
+          sh ./install.sh
+
+      - name: Verify installed binary
+        run: ./.tools/installer-unix/bin/codexnomad --help
+
+  installer-windows:
+    name: Installer / Windows
+    runs-on: windows-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: daemon/go.mod
+          cache-dependency-path: daemon/go.sum
+
+      - name: Package Windows daemon
+        shell: pwsh
+        run: .\scripts\release\package-daemon-windows.ps1
+
+      - name: Smoke install from local archive
+        shell: pwsh
+        run: |
+          .\install.ps1 `
+            -ArchivePath .\dist\codexnomad_windows_amd64.zip `
+            -InstallDir .\.tools\installer-smoke\bin `
+            -NoService `
+            -NoPath `
+            -SkipDoctor
+
+      - name: Verify installed binary
+        shell: pwsh
+        run: .\.tools\installer-smoke\bin\codexnomad.exe --help
+
   flutter:
     name: Flutter Android
     runs-on: ubuntu-latest

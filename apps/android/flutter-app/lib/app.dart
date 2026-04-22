@@ -1,6 +1,8 @@
 import 'package:codex_nomad/core/theme/app_theme.dart';
 import 'package:codex_nomad/features/home/home_screen.dart';
+import 'package:codex_nomad/features/home/start_work_screen.dart';
 import 'package:codex_nomad/features/live/live_session_screen.dart';
+import 'package:codex_nomad/features/qr/connecting_screen.dart';
 import 'package:codex_nomad/features/machines/machines_screen.dart';
 import 'package:codex_nomad/features/onboarding/onboarding_screen.dart';
 import 'package:codex_nomad/features/qr/qr_scanner_screen.dart';
@@ -23,7 +25,16 @@ class CodexNomadApp extends StatelessWidget {
           path: '/onboarding',
           builder: (_, __) => const OnboardingScreen(),
         ),
+        GoRoute(
+          path: '/start',
+          builder: (_, __) => const StartWorkScreen(),
+        ),
         GoRoute(path: '/scan', builder: (_, __) => const QrScannerScreen()),
+        GoRoute(
+          path: '/connecting',
+          builder: (_, state) =>
+              ConnectingScreen(rawQr: state.extra as String?),
+        ),
         GoRoute(path: '/live', builder: (_, __) => const LiveSessionScreen()),
         GoRoute(path: '/machines', builder: (_, __) => const MachinesScreen()),
         GoRoute(path: '/settings', builder: (_, __) => const SettingsScreen()),

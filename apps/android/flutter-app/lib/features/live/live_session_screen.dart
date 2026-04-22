@@ -5,6 +5,7 @@ import 'package:codex_nomad/features/live/widgets/review_pane.dart';
 import 'package:codex_nomad/features/live/widgets/terminal_pane.dart';
 import 'package:codex_nomad/models/session_models.dart';
 import 'package:codex_nomad/providers/app_providers.dart';
+import 'package:codex_nomad/widgets/brand_mark.dart';
 import 'package:codex_nomad/widgets/metric_chip.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -26,10 +27,15 @@ class _LiveSessionScreenState extends ConsumerState<LiveSessionScreen> {
     final controller = ref.watch(sessionControllerProvider);
     final state = controller.state;
     final pairing = state.pairing;
+    final sessions = controller.recentSessions;
 
     return Scaffold(
+      drawer: _ChatDrawer(
+        sessions: sessions,
+        onStartNew: () => context.go('/start'),
+      ),
       appBar: AppBar(
-        title: Text(pairing?.agent.label ?? 'Live Session'),
+        title: Text(pairing?.agent.label ?? 'Workspace'),
         actions: [
           if (pairing != null)
             Padding(
@@ -69,16 +75,16 @@ class _LiveSessionScreenState extends ConsumerState<LiveSessionScreen> {
         },
         destinations: const [
           NavigationDestination(
-            icon: Icon(PhosphorIconsRegular.shieldCheck),
-            label: 'Review',
+            icon: Icon(PhosphorIconsRegular.command),
+            label: 'Chat',
           ),
           NavigationDestination(
             icon: Icon(PhosphorIconsRegular.terminal),
             label: 'Terminal',
           ),
           NavigationDestination(
-            icon: Icon(PhosphorIconsRegular.command),
-            label: 'Chat',
+            icon: Icon(PhosphorIconsRegular.shieldCheck),
+            label: 'Review',
           ),
           NavigationDestination(
             icon: Icon(PhosphorIconsRegular.folderOpen),
@@ -102,14 +108,89 @@ class _LiveSessionScreenState extends ConsumerState<LiveSessionScreen> {
       case 1:
         return TerminalPane(state: state, controller: controller);
       case 2:
-        return ChatPane(controller: controller, state: state);
+        return ReviewPane(state: state, controller: controller);
       case 3:
         return FileBrowserPane(controller: controller, files: state.files);
       case 4:
         return EditorPane(controller: controller, file: state.openFile);
       default:
-        return ReviewPane(state: state, controller: controller);
+        return ChatPane(controller: controller, state: state);
     }
+  }
+}
+
+class _ChatDrawer extends StatelessWidget {
+  const _ChatDrawer({
+    required this.sessions,
+    required this.onStartNew,
+  });
+
+  final List<SessionSummary> sessions;
+  final VoidCallback onStartNew;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Drawer(
+      backgroundColor: scheme.surface,
+      child: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
+          children: [
+            const Row(
+              children: [
+                CodexNomadMark(size: 34, showFrame: false),
+                SizedBox(width: 10),
+                Text(
+                  'Chats',
+                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 22),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            FilledButton.icon(
+              onPressed: onStartNew,
+              icon: const Text(
+                '</',
+                style: TextStyle(fontWeight: FontWeight.w900),
+              ),
+              label: const Text('New local chat'),
+            ),
+            const SizedBox(height: 18),
+            if (sessions.isEmpty)
+              Text(
+                'No saved chats yet.',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+              )
+            else
+              for (final session in sessions)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: ListTile(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    tileColor: scheme.primary.withValues(alpha: 0.08),
+                    leading: const Icon(PhosphorIconsRegular.command),
+                    title: Text(
+                      session.agent.label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    subtitle: Text(
+                      session.machineName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    onTap: () => Navigator.of(context).pop(),
+                  ),
+                ),
+          ],
+        ),
+      ),
+    );
   }
 }
 

@@ -1,5 +1,3 @@
-import 'package:codex_nomad/features/home/session_card.dart';
-import 'package:codex_nomad/models/pairing_payload.dart';
 import 'package:codex_nomad/models/session_models.dart';
 import 'package:codex_nomad/providers/app_providers.dart';
 import 'package:codex_nomad/widgets/brand_mark.dart';
@@ -8,37 +6,19 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
-enum _HomeMode { local, cloud }
-
-class HomeScreen extends ConsumerStatefulWidget {
+class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
   @override
-  ConsumerState<HomeScreen> createState() => _HomeScreenState();
-}
-
-class _HomeScreenState extends ConsumerState<HomeScreen> {
-  _HomeMode _mode = _HomeMode.local;
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final controller = ref.watch(sessionControllerProvider);
-    final sessions = controller.recentSessions;
     final state = controller.state;
-    final auth = ref.watch(authControllerProvider);
+    final sessions = controller.recentSessions;
     final scheme = Theme.of(context).colorScheme;
-    final inboxItems = state.inbox;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CodexNomadMark(size: 30, showFrame: false),
-            SizedBox(width: 10),
-            Text('Agent Inbox'),
-          ],
-        ),
+        title: const Text('Codex Nomad'),
         actions: [
           IconButton(
             tooltip: 'Machines',
@@ -52,373 +32,113 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
         ],
       ),
-      floatingActionButton: _mode == _HomeMode.local
-          ? FloatingActionButton.extended(
-              onPressed: () => context.push('/scan'),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(20, 10, 20, 28),
+          children: [
+            const SizedBox(height: 10),
+            const Center(child: CodexNomadMark(size: 112, showFrame: false)),
+            const SizedBox(height: 28),
+            Text(
+              'Start working',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                    fontWeight: FontWeight.w900,
+                    height: 0.98,
+                  ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Run Codex or Claude on your computer. Control the session from your phone with chat, terminal, files, and approvals.',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                    height: 1.35,
+                  ),
+            ),
+            const SizedBox(height: 26),
+            FilledButton.icon(
+              onPressed: () => context.push('/start'),
               icon: const Text(
                 '</',
                 style: TextStyle(fontWeight: FontWeight.w900),
               ),
-              label: const Text('Pair local'),
-            )
-          : null,
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 96),
-          children: [
-            _ModeTabs(
-              selected: _mode,
-              onChanged: (mode) => setState(() => _mode = mode),
+              label: const Text('Start working'),
             ),
-            const SizedBox(height: 16),
-            if (_mode == _HomeMode.local) ...[
-              _LocalStatusPanel(
-                lastPairing: controller.lastPairing,
-                onScan: () => context.push('/scan'),
-                onGuide: () => context.push('/onboarding'),
-                onReconnect: controller.lastPairing == null
-                    ? null
-                    : () async {
-                        final connected = await ref
-                            .read(sessionControllerProvider)
-                            .reconnectLastPairing();
-                        if (context.mounted && connected) context.push('/live');
-                      },
-              ),
-              const SizedBox(height: 18),
-              Row(
-                children: [
-                  Expanded(
-                    child: _MetricTile(
-                      icon: PhosphorIconsRegular.robot,
-                      label: 'Agents',
-                      value: '${sessions.length}',
-                      active: sessions.isNotEmpty,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  const Expanded(
-                    child: _MetricTile(
-                      icon: PhosphorIconsRegular.laptop,
-                      label: 'Mode',
-                      value: 'Local',
-                      active: true,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: _MetricTile(
-                      icon: PhosphorIconsRegular.bellRinging,
-                      label: 'Actions',
-                      value: '${inboxItems.length}',
-                      active: inboxItems.isNotEmpty,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-              _SectionHeader(
-                title: 'Needs Attention',
-                trailing: inboxItems.isEmpty ? 'Clear' : '${inboxItems.length}',
-              ),
-              const SizedBox(height: 12),
-              if (inboxItems.isEmpty)
-                const _EmptyInbox()
-              else
-                for (final item in inboxItems)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: _InboxCard(item: item),
-                  ),
-              const SizedBox(height: 24),
-              _SectionHeader(
-                title: 'Local Sessions',
-                trailing: sessions.isEmpty ? 'None' : '${sessions.length}',
-              ),
-              const SizedBox(height: 12),
-              if (sessions.isEmpty)
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(18),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Icon(PhosphorIconsRegular.terminalWindow,
-                            color: scheme.primary),
-                        const SizedBox(height: 12),
-                        Text(
-                          'No live local agent',
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          'Start a local test session on your computer, then scan the QR.',
-                          style: Theme.of(context).textTheme.bodyMedium,
-                        ),
-                      ],
-                    ),
-                  ),
-                )
-              else
-                ...sessions.map((s) => Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: SessionCard(summary: s),
-                    )),
-            ] else
-              _CloudModePanel(
-                configured: auth.configured,
-                signedIn: auth.signedIn,
-                email: auth.email,
-                onSettings: () => context.push('/settings'),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ModeTabs extends StatelessWidget {
-  const _ModeTabs({required this.selected, required this.onChanged});
-
-  final _HomeMode selected;
-  final ValueChanged<_HomeMode> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return SegmentedButton<_HomeMode>(
-      showSelectedIcon: false,
-      segments: const [
-        ButtonSegment(
-          value: _HomeMode.local,
-          icon: Icon(PhosphorIconsRegular.laptop),
-          label: Text('Local'),
-        ),
-        ButtonSegment(
-          value: _HomeMode.cloud,
-          icon: Icon(PhosphorIconsRegular.cloud),
-          label: Text('Cloud'),
-        ),
-      ],
-      selected: {selected},
-      onSelectionChanged: (value) => onChanged(value.first),
-    );
-  }
-}
-
-class _CloudModePanel extends StatelessWidget {
-  const _CloudModePanel({
-    required this.configured,
-    required this.signedIn,
-    required this.email,
-    required this.onSettings,
-  });
-
-  final bool configured;
-  final bool signedIn;
-  final String? email;
-  final VoidCallback onSettings;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final title = signedIn ? 'Cloud account connected' : 'Cloud runners';
-    final detail = configured
-        ? signedIn
-            ? 'Signed in as ${email ?? 'your account'}. Cloud runners can be attached when the backend is deployed.'
-            : 'Sign in to attach cloud runners once the hosted backend is deployed.'
-        : 'Local mode does not need Supabase. Cloud mode will use the hosted account backend for sign-in, billing, and runner ownership.';
-
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(8),
-        color: scheme.surfaceContainerHighest.withValues(alpha: 0.72),
-        border:
-            Border.all(color: scheme.outlineVariant.withValues(alpha: 0.72)),
-      ),
-      padding: const EdgeInsets.all(18),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(PhosphorIconsRegular.cloud, color: scheme.primary),
-              const SizedBox(width: 8),
-              Text(
-                'PC-off mode',
-                style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      color: scheme.primary,
-                      fontWeight: FontWeight.w800,
-                    ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            title,
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  height: 1.08,
-                ),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            detail,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: scheme.onSurfaceVariant,
-                ),
-          ),
-          const SizedBox(height: 16),
-          FilledButton.icon(
-            onPressed: onSettings,
-            icon: const Icon(Icons.tune_rounded),
-            label:
-                Text(configured ? 'Open cloud settings' : 'View cloud setup'),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _LocalStatusPanel extends StatelessWidget {
-  const _LocalStatusPanel({
-    required this.onScan,
-    required this.onGuide,
-    required this.lastPairing,
-    required this.onReconnect,
-  });
-
-  final VoidCallback onScan;
-  final VoidCallback onGuide;
-  final PairingPayload? lastPairing;
-  final VoidCallback? onReconnect;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(8),
-        color: scheme.surfaceContainerHighest.withValues(alpha: 0.72),
-        border:
-            Border.all(color: scheme.outlineVariant.withValues(alpha: 0.72)),
-      ),
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(PhosphorIconsRegular.shieldCheck, color: scheme.primary),
-              const SizedBox(width: 8),
-              Text(
-                'Free Local Mode',
-                style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      color: scheme.primary,
-                      fontWeight: FontWeight.w700,
-                    ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            'One command on your machine. Full control from your phone.',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  height: 1.08,
-                ),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            'Pair once, then handle prompts, diffs, and blocked sessions from the inbox.',
-            style: Theme.of(context).textTheme.bodyLarge,
-          ),
-          const SizedBox(height: 18),
-          Row(
-            children: [
-              Expanded(
-                child: FilledButton.icon(
-                  onPressed: onScan,
-                  icon: const Icon(PhosphorIconsRegular.qrCode),
-                  label: const Text('Scan QR'),
-                ),
-              ),
-              const SizedBox(width: 10),
-              IconButton.outlined(
-                tooltip: 'Setup guide',
-                onPressed: onGuide,
-                icon: const Icon(PhosphorIconsRegular.mapTrifold),
-              ),
-            ],
-          ),
-          if (lastPairing != null) ...[
             const SizedBox(height: 12),
-            _LastMachineRow(
-              pairing: lastPairing!,
-              onReconnect: onReconnect,
+            OutlinedButton.icon(
+              onPressed: controller.lastPairing == null
+                  ? null
+                  : () async {
+                      final ok = await ref
+                          .read(sessionControllerProvider)
+                          .reconnectLastPairing();
+                      if (context.mounted && ok) context.go('/live');
+                    },
+              icon: const Icon(PhosphorIconsRegular.arrowsClockwise),
+              label: const Text('Reconnect last machine'),
             ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _LastMachineRow extends StatelessWidget {
-  const _LastMachineRow({
-    required this.pairing,
-    required this.onReconnect,
-  });
-
-  final PairingPayload pairing;
-  final VoidCallback? onReconnect;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(8),
-        color: scheme.surface.withValues(alpha: 0.5),
-        border: Border.all(color: scheme.outlineVariant),
-      ),
-      child: Row(
-        children: [
-          Icon(PhosphorIconsRegular.laptop, color: scheme.secondary),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            const SizedBox(height: 28),
+            Row(
               children: [
-                Text(
-                  pairing.machineName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
+                Expanded(
+                  child: _SignalTile(
+                    icon: PhosphorIconsRegular.lockKey,
+                    label: 'Relay',
+                    value: 'E2EE',
+                    active: true,
+                  ),
                 ),
-                Text(
-                  pairing.isExpired
-                      ? 'Pairing expired'
-                      : '${pairing.agent.label} - ${pairing.machineOs.isEmpty ? 'local' : pairing.machineOs}',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                      ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _SignalTile(
+                    icon: PhosphorIconsRegular.laptop,
+                    label: 'Mode',
+                    value: 'Local',
+                    active: true,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _SignalTile(
+                    icon: PhosphorIconsRegular.bellRinging,
+                    label: 'Queue',
+                    value: '${state.inbox.length}',
+                    active: state.inbox.isNotEmpty,
+                  ),
                 ),
               ],
             ),
-          ),
-          const SizedBox(width: 10),
-          OutlinedButton(
-            onPressed: onReconnect,
-            child: Text(pairing.isExpired ? 'Resume' : 'Reconnect'),
-          ),
-        ],
+            const SizedBox(height: 26),
+            _SectionHeader(
+              title: 'Recent chats',
+              trailing: sessions.isEmpty ? 'None' : '${sessions.length}',
+            ),
+            const SizedBox(height: 12),
+            if (sessions.isEmpty)
+              const _EmptyRecent()
+            else
+              for (final session in sessions.take(5))
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: _RecentChatTile(summary: session),
+                ),
+            const SizedBox(height: 24),
+            _SectionHeader(
+              title: 'Needs attention',
+              trailing: state.inbox.isEmpty ? 'Clear' : '${state.inbox.length}',
+            ),
+            const SizedBox(height: 12),
+            if (state.inbox.isEmpty)
+              const _EmptyAttention()
+            else
+              for (final item in state.inbox.take(4))
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: _AttentionTile(item: item),
+                ),
+          ],
+        ),
       ),
     );
   }
@@ -438,7 +158,7 @@ class _SectionHeader extends StatelessWidget {
         Text(
           title,
           style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w900,
               ),
         ),
         const Spacer(),
@@ -446,6 +166,7 @@ class _SectionHeader extends StatelessWidget {
           trailing,
           style: Theme.of(context).textTheme.labelLarge?.copyWith(
                 color: scheme.onSurfaceVariant,
+                fontWeight: FontWeight.w800,
               ),
         ),
       ],
@@ -453,8 +174,8 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
-class _MetricTile extends StatelessWidget {
-  const _MetricTile({
+class _SignalTile extends StatelessWidget {
+  const _SignalTile({
     required this.icon,
     required this.label,
     required this.value,
@@ -471,12 +192,12 @@ class _MetricTile extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final color = active ? scheme.primary : scheme.onSurfaceVariant;
     return Container(
-      height: 96,
+      height: 92,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(8),
-        color: scheme.surfaceContainerHighest.withValues(alpha: 0.54),
-        border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.6)),
+        color: scheme.primary.withValues(alpha: 0.10),
+        border: Border.all(color: scheme.primary.withValues(alpha: 0.24)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -488,7 +209,7 @@ class _MetricTile extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
+                  fontWeight: FontWeight.w900,
                 ),
           ),
           Text(
@@ -505,22 +226,124 @@ class _MetricTile extends StatelessWidget {
   }
 }
 
-class _EmptyInbox extends StatelessWidget {
-  const _EmptyInbox();
+class _RecentChatTile extends StatelessWidget {
+  const _RecentChatTile({required this.summary});
+
+  final SessionSummary summary;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Card(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: () => context.go('/live'),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(
+            children: [
+              Icon(PhosphorIconsRegular.command, color: scheme.primary),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      summary.agent.label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w900,
+                          ),
+                    ),
+                    Text(
+                      summary.machineName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(PhosphorIconsRegular.arrowRight),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _AttentionTile extends StatelessWidget {
+  const _AttentionTile({required this.item});
+
+  final AttentionItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Card(
+      child: ListTile(
+        onTap: () => context.go('/live'),
+        leading:
+            Icon(PhosphorIconsRegular.warningCircle, color: scheme.primary),
+        title: Text(item.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+        subtitle: Text(
+          item.detail,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
+        trailing: const Icon(PhosphorIconsRegular.arrowRight),
+      ),
+    );
+  }
+}
+
+class _EmptyRecent extends StatelessWidget {
+  const _EmptyRecent();
+
+  @override
+  Widget build(BuildContext context) {
+    return const _EmptyPanel(
+      icon: PhosphorIconsRegular.terminalWindow,
+      text: 'No chats yet. Start working to connect your first local agent.',
+    );
+  }
+}
+
+class _EmptyAttention extends StatelessWidget {
+  const _EmptyAttention();
+
+  @override
+  Widget build(BuildContext context) {
+    return const _EmptyPanel(
+      icon: PhosphorIconsRegular.checkCircle,
+      text: 'No blocked agents. Approval requests appear here.',
+    );
+  }
+}
+
+class _EmptyPanel extends StatelessWidget {
+  const _EmptyPanel({required this.icon, required this.text});
+
+  final IconData icon;
+  final String text;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(18),
+        padding: const EdgeInsets.all(16),
         child: Row(
           children: [
-            Icon(PhosphorIconsRegular.checkCircle, color: Colors.green),
+            Icon(icon, color: scheme.secondary),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                'No blocked agents. When Codex or Claude needs you, it appears here first.',
+                text,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: scheme.onSurfaceVariant,
                     ),
@@ -530,92 +353,5 @@ class _EmptyInbox extends StatelessWidget {
         ),
       ),
     );
-  }
-}
-
-class _InboxCard extends StatelessWidget {
-  const _InboxCard({required this.item});
-
-  final AttentionItem item;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final color = switch (item.tone) {
-      AttentionTone.success => Colors.green,
-      AttentionTone.warning => Colors.amber.shade700,
-      AttentionTone.danger => scheme.error,
-      AttentionTone.info => scheme.primary,
-    };
-    return Card(
-      child: InkWell(
-        borderRadius: BorderRadius.circular(8),
-        onTap: () => context.push('/live'),
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(_iconFor(item.kind), color: color),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      item.title,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w700,
-                          ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      item.detail,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: scheme.onSurfaceVariant,
-                          ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                item.actionLabel ?? '',
-                style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      color: scheme.onSurfaceVariant,
-                      fontWeight: FontWeight.w700,
-                    ),
-              ),
-              const SizedBox(width: 6),
-              Icon(
-                PhosphorIconsRegular.arrowRight,
-                size: 18,
-                color: scheme.onSurfaceVariant,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  IconData _iconFor(AttentionKind kind) {
-    return switch (kind) {
-      AttentionKind.permission => PhosphorIconsRegular.shieldWarning,
-      AttentionKind.diff => PhosphorIconsRegular.gitDiff,
-      AttentionKind.blocked => PhosphorIconsRegular.warning,
-      AttentionKind.complete => PhosphorIconsRegular.checkCircle,
-      AttentionKind.connection => PhosphorIconsRegular.cloudWarning,
-      AttentionKind.error => PhosphorIconsRegular.warningCircle,
-    };
   }
 }

@@ -65,33 +65,61 @@ class _CodexNomadMarkPainter extends CustomPainter {
     }
 
     final stroke = s * 0.105;
+    final glowPaint = Paint()
+      ..color = purple.withValues(alpha: 0.36)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = stroke * 1.38
+      ..strokeCap = StrokeCap.round
+      ..maskFilter = MaskFilter.blur(BlurStyle.normal, s * 0.045);
     final leftPaint = Paint()
-      ..color = purple
+      ..shader = LinearGradient(
+        begin: Alignment.bottomLeft,
+        end: Alignment.topRight,
+        colors: [purple, accent, slash.withValues(alpha: 0.88)],
+      ).createShader(rect)
       ..style = PaintingStyle.stroke
       ..strokeWidth = stroke
-      ..strokeCap = StrokeCap.square
-      ..strokeJoin = StrokeJoin.bevel;
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
     final slashPaint = Paint()
-      ..color = slash
+      ..shader = LinearGradient(
+        begin: Alignment.bottomCenter,
+        end: Alignment.topCenter,
+        colors: [purple, accent, slash.withValues(alpha: 0.92)],
+      ).createShader(rect)
       ..style = PaintingStyle.stroke
       ..strokeWidth = stroke * 0.92
-      ..strokeCap = StrokeCap.square;
+      ..strokeCap = StrokeCap.round;
 
     final left = Path()
       ..moveTo(s * 0.46, s * 0.28)
       ..lineTo(s * 0.23, s * 0.50)
       ..lineTo(s * 0.46, s * 0.72);
+    canvas.drawPath(left, glowPaint);
     canvas.drawPath(left, leftPaint);
 
+    canvas.drawLine(
+      Offset(s * 0.73, s * 0.24),
+      Offset(s * 0.53, s * 0.78),
+      glowPaint,
+    );
     canvas.drawLine(
       Offset(s * 0.73, s * 0.24),
       Offset(s * 0.53, s * 0.78),
       slashPaint,
     );
 
-    final glintPaint = Paint()..color = accent;
-    canvas.drawCircle(Offset(s * 0.81, s * 0.26), s * 0.035, glintPaint);
-    canvas.drawCircle(Offset(s * 0.77, s * 0.73), s * 0.024, glintPaint);
+    final edgePaint = Paint()
+      ..color = slash.withValues(alpha: 0.72)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = s * 0.01
+      ..strokeCap = StrokeCap.round;
+    canvas.drawPath(left, edgePaint);
+    canvas.drawLine(
+      Offset(s * 0.73, s * 0.24),
+      Offset(s * 0.53, s * 0.78),
+      edgePaint,
+    );
   }
 
   @override

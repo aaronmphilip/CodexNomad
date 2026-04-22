@@ -68,7 +68,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 page: _page,
                 count: steps.length,
                 onBack: _page == 0 ? null : _previous,
-                onNext: _page == steps.length - 1 ? _finishToScanner : _next,
+                onNext: _page == steps.length - 1 ? _finishToHome : _next,
                 onSecondary: _finishToHome,
               ),
             ),
@@ -225,11 +225,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   Future<void> _finishToHome() async {
     await ref.read(onboardingControllerProvider).complete();
     if (mounted) context.go('/');
-  }
-
-  Future<void> _finishToScanner() async {
-    await ref.read(onboardingControllerProvider).complete();
-    if (mounted) context.go('/scan');
   }
 }
 
@@ -568,7 +563,7 @@ class _BottomControls extends StatelessWidget {
                     ),
                   )
                 : const Icon(PhosphorIconsRegular.arrowRight),
-            label: Text(_last ? 'Pair now' : 'Continue'),
+            label: Text(_last ? 'Start' : 'Continue'),
           ),
         ),
       ],

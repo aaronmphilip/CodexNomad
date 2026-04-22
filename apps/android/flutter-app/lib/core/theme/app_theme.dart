@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
-  static const _purple = Color(0xFFA855F7);
-  static const _purpleSoft = Color(0xFFC4B5FD);
-  static const _black = Color(0xFF05030A);
-  static const _panel = Color(0xFF100B18);
-  static const _panelHigh = Color(0xFF191124);
-  static const _outline = Color(0xFF35264A);
+  static const _purple = Color(0xFF8B5CF6);
+  static const _purpleSoft = Color(0xFFD8B4FE);
+  static const _black = Color(0xFF03020A);
+  static const _panel = Color(0xFF0C0715);
+  static const _panelHigh = Color(0xFF171023);
+  static const _outline = Color(0xFF3A2854);
 
   static ThemeData light() {
     return dark();
@@ -20,7 +20,7 @@ class AppTheme {
     ).copyWith(
       primary: _purple,
       onPrimary: Colors.white,
-      primaryContainer: const Color(0xFF3A176A),
+      primaryContainer: const Color(0xFF392066),
       onPrimaryContainer: const Color(0xFFF4E9FF),
       secondary: _purpleSoft,
       onSecondary: _black,
@@ -63,7 +63,7 @@ class AppTheme {
       cardTheme: CardThemeData(
         elevation: 0,
         margin: EdgeInsets.zero,
-        color: _panelHigh.withValues(alpha: 0.86),
+        color: _panelHigh.withValues(alpha: 0.90),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
       navigationBarTheme: NavigationBarThemeData(
@@ -88,10 +88,13 @@ class AppTheme {
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          backgroundColor: _purple,
+          backgroundColor: _purple.withValues(alpha: 0.50),
           foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          minimumSize: const Size(48, 48),
+          disabledBackgroundColor: _purple.withValues(alpha: 0.16),
+          disabledForegroundColor: Colors.white.withValues(alpha: 0.38),
+          side: BorderSide(color: _purpleSoft.withValues(alpha: 0.26)),
+          shape: const StadiumBorder(),
+          minimumSize: const Size(48, 52),
           textStyle: textTheme.labelLarge?.copyWith(
             fontWeight: FontWeight.w800,
           ),
@@ -101,8 +104,8 @@ class AppTheme {
         style: OutlinedButton.styleFrom(
           foregroundColor: _purpleSoft,
           side: const BorderSide(color: _outline),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          minimumSize: const Size(48, 48),
+          shape: const StadiumBorder(),
+          minimumSize: const Size(48, 52),
           textStyle: textTheme.labelLarge?.copyWith(
             fontWeight: FontWeight.w800,
           ),
@@ -112,8 +115,30 @@ class AppTheme {
         filled: true,
         fillColor: _panel,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(26),
           borderSide: BorderSide.none,
+        ),
+      ),
+      iconButtonTheme: IconButtonThemeData(
+        style: IconButton.styleFrom(
+          shape: const CircleBorder(),
+          backgroundColor: _purple.withValues(alpha: 0.10),
+          foregroundColor: _purpleSoft,
+        ),
+      ),
+      segmentedButtonTheme: SegmentedButtonThemeData(
+        style: ButtonStyle(
+          backgroundColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.selected)) {
+              return _purple.withValues(alpha: 0.50);
+            }
+            return _panelHigh.withValues(alpha: 0.64);
+          }),
+          foregroundColor: const WidgetStatePropertyAll(Colors.white),
+          side: WidgetStatePropertyAll(
+            BorderSide(color: _purple.withValues(alpha: 0.30)),
+          ),
+          shape: const WidgetStatePropertyAll(StadiumBorder()),
         ),
       ),
     );

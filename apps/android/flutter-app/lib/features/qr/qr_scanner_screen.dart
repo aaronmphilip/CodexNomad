@@ -1,28 +1,19 @@
-import 'package:codex_nomad/models/pairing_payload.dart';
-import 'package:codex_nomad/providers/app_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
-class QrScannerScreen extends ConsumerStatefulWidget {
+class QrScannerScreen extends StatefulWidget {
   const QrScannerScreen({super.key});
 
   @override
-  ConsumerState<QrScannerScreen> createState() => _QrScannerScreenState();
+  State<QrScannerScreen> createState() => _QrScannerScreenState();
 }
 
-class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
+class _QrScannerScreenState extends State<QrScannerScreen> {
   final _scanner = MobileScannerController();
-  AgentKind _agent = AgentKind.codex;
   bool _handled = false;
-
-  String get _command {
-    final agent = _agent == AgentKind.claude ? 'claude' : 'codex';
-    return 'powershell -NoProfile -ExecutionPolicy Bypass -File .\\scripts\\dev\\start-local-test-windows.ps1 -Agent $agent';
-  }
 
   @override
   void dispose() {
@@ -34,7 +25,7 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Scaffold(
-      appBar: AppBar(title: const Text('Pair Local')),
+      appBar: AppBar(title: const Text('Scan pairing code')),
       body: Column(
         children: [
           Expanded(
@@ -68,14 +59,14 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Icon(
-                        PhosphorIconsRegular.laptop,
+                        PhosphorIconsRegular.qrCode,
                         color: scheme.secondary,
                         size: 20,
                       ),
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
-                          'Run this on your computer. It starts the local relay, then prints the QR for this camera.',
+                          'Point the camera at the fresh QR in the desktop terminal.',
                           style:
                               Theme.of(context).textTheme.bodyMedium?.copyWith(
                                     color: scheme.onSurfaceVariant,
@@ -85,28 +76,10 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
                     ],
                   ),
                   const SizedBox(height: 12),
-                  SegmentedButton<AgentKind>(
-                    segments: const [
-                      ButtonSegment(
-                        value: AgentKind.codex,
-                        icon: Icon(PhosphorIconsRegular.terminalWindow),
-                        label: Text('Codex'),
-                      ),
-                      ButtonSegment(
-                        value: AgentKind.claude,
-                        icon: Icon(PhosphorIconsRegular.sparkle),
-                        label: Text('Claude'),
-                      ),
-                    ],
-                    selected: {_agent},
-                    onSelectionChanged: (value) {
-                      setState(() => _agent = value.first);
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  _CommandStrip(
-                    command: _command,
-                    onCopy: _copyCommand,
+                  OutlinedButton.icon(
+                    onPressed: () => context.push('/start'),
+                    icon: const Icon(PhosphorIconsRegular.terminalWindow),
+                    label: const Text('Show command again'),
                   ),
                 ],
               ),
@@ -117,31 +90,14 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
     );
   }
 
-  Future<void> _copyCommand() async {
-    await Clipboard.setData(ClipboardData(text: _command));
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Copied $_command')),
-    );
-  }
-
-  Future<void> _handleDetect(BarcodeCapture capture) async {
+  void _handleDetect(BarcodeCapture capture) {
     if (_handled) return;
     final value =
         capture.barcodes.isEmpty ? null : capture.barcodes.first.rawValue;
     if (value == null || value.isEmpty) return;
     _handled = true;
     HapticFeedback.mediumImpact();
-    try {
-      await ref.read(sessionControllerProvider).connectFromQr(value);
-      if (mounted) context.go('/live');
-    } catch (error) {
-      _handled = false;
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('$error')),
-      );
-    }
+    context.go('/connecting', extra: value);
   }
 }
 
@@ -185,59 +141,6 @@ class _ScanFrame extends StatelessWidget {
             outline: scheme.onSurface.withValues(alpha: 0.28),
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _CommandStrip extends StatelessWidget {
-  const _CommandStrip({
-    required this.command,
-    required this.onCopy,
-  });
-
-  final String command;
-  final VoidCallback onCopy;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      height: 56,
-      padding: const EdgeInsets.fromLTRB(12, 6, 6, 6),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(8),
-        color: scheme.surfaceContainerHighest.withValues(alpha: 0.62),
-        border: Border.all(color: scheme.outlineVariant),
-      ),
-      child: Row(
-        children: [
-          Text(
-            '</',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: scheme.secondary,
-                  fontWeight: FontWeight.w900,
-                ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              command,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontFamily: 'monospace',
-                    fontWeight: FontWeight.w800,
-                  ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          IconButton(
-            tooltip: 'Copy command',
-            onPressed: onCopy,
-            icon: const Icon(PhosphorIconsRegular.copy),
-          ),
-        ],
       ),
     );
   }

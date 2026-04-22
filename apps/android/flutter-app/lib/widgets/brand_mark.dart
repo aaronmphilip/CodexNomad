@@ -4,7 +4,7 @@ class CodexNomadMark extends StatelessWidget {
   const CodexNomadMark({
     super.key,
     this.size = 44,
-    this.showFrame = true,
+    this.showFrame = false,
   });
 
   final double size;
@@ -64,39 +64,34 @@ class _CodexNomadMarkPainter extends CustomPainter {
       canvas.drawRRect(rrect.deflate(s * 0.02), framePaint);
     }
 
+    final stroke = s * 0.105;
+    final leftPaint = Paint()
+      ..color = purple
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = stroke
+      ..strokeCap = StrokeCap.square
+      ..strokeJoin = StrokeJoin.bevel;
+    final slashPaint = Paint()
+      ..color = slash
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = stroke * 0.92
+      ..strokeCap = StrokeCap.square;
+
     final left = Path()
-      ..moveTo(s * 0.44, s * 0.28)
-      ..lineTo(s * 0.22, s * 0.50)
-      ..lineTo(s * 0.44, s * 0.72)
-      ..lineTo(s * 0.53, s * 0.62)
-      ..lineTo(s * 0.39, s * 0.50)
-      ..lineTo(s * 0.53, s * 0.38)
-      ..close();
-    canvas.drawPath(left, Paint()..color = purple);
+      ..moveTo(s * 0.46, s * 0.28)
+      ..lineTo(s * 0.23, s * 0.50)
+      ..lineTo(s * 0.46, s * 0.72);
+    canvas.drawPath(left, leftPaint);
 
-    final slashPath = Path()
-      ..moveTo(s * 0.67, s * 0.25)
-      ..lineTo(s * 0.78, s * 0.25)
-      ..lineTo(s * 0.56, s * 0.76)
-      ..lineTo(s * 0.45, s * 0.76)
-      ..close();
-    canvas.drawPath(slashPath, Paint()..color = slash);
+    canvas.drawLine(
+      Offset(s * 0.73, s * 0.24),
+      Offset(s * 0.53, s * 0.78),
+      slashPaint,
+    );
 
-    final accentPaint = Paint()..color = accent;
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromLTWH(s * 0.72, s * 0.24, s * 0.08, s * 0.08),
-        Radius.circular(s * 0.018),
-      ),
-      accentPaint,
-    );
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromLTWH(s * 0.80, s * 0.64, s * 0.06, s * 0.06),
-        Radius.circular(s * 0.015),
-      ),
-      accentPaint,
-    );
+    final glintPaint = Paint()..color = accent;
+    canvas.drawCircle(Offset(s * 0.81, s * 0.26), s * 0.035, glintPaint);
+    canvas.drawCircle(Offset(s * 0.77, s * 0.73), s * 0.024, glintPaint);
   }
 
   @override

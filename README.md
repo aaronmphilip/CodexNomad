@@ -46,7 +46,7 @@ Codex CLI first:
 
 ```powershell
 npm.cmd install -g @openai/codex
-codex.cmd --login
+codex.cmd login
 ```
 
 Then run:

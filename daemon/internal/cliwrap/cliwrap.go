@@ -59,7 +59,7 @@ func ResolveExecutable(agent Agent, bin string) (string, error) {
 	}
 	if agent == AgentCodex && isWindowsCodexAppBinary(path) {
 		return "", fmt.Errorf(
-			"found the Windows Codex app binary at %s, but that sandbox executable is not launchable by Codex Nomad. Install the Codex CLI with `npm.cmd install -g @openai/codex`, then run `codex.cmd --login`, or set CODEXNOMAD_CODEX_BIN to a runnable CLI path",
+			"found the Windows Codex app binary at %s, but that sandbox executable is not launchable by Codex Nomad. Install the Codex CLI with `npm.cmd install -g @openai/codex`, then run `codex.cmd login`, or set CODEXNOMAD_CODEX_BIN to a runnable CLI path",
 			path,
 		)
 	}
@@ -69,7 +69,7 @@ func ResolveExecutable(agent Agent, bin string) (string, error) {
 func notFoundError(agent Agent, bin string) error {
 	if agent == AgentCodex {
 		if runtime.GOOS == "windows" {
-			return fmt.Errorf("could not find runnable Codex CLI %q. Install it with `npm.cmd install -g @openai/codex`, then run `codex.cmd --login`, or set CODEXNOMAD_CODEX_BIN", bin)
+			return fmt.Errorf("could not find runnable Codex CLI %q. Install it with `npm.cmd install -g @openai/codex`, then run `codex.cmd login`, or set CODEXNOMAD_CODEX_BIN", bin)
 		}
 		return fmt.Errorf("could not find runnable Codex CLI %q on PATH; install the official CLI or set CODEXNOMAD_CODEX_BIN", bin)
 	}

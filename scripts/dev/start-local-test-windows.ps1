@@ -159,7 +159,7 @@ if (-not (Test-Path $daemonExe)) {
 $agentBin = Resolve-AgentBinary $Agent
 if ([string]::IsNullOrWhiteSpace($agentBin)) {
   if ($Agent -eq 'codex') {
-    throw "Could not find a runnable Codex CLI. The Windows Codex app sandbox binary is not enough. Install with: npm.cmd install -g @openai/codex ; then run: codex.cmd --login. You can also run -Agent claude or -Agent demo."
+    throw "Could not find a runnable Codex CLI. The Windows Codex app sandbox binary is not enough. Install with: npm.cmd install -g @openai/codex ; then run: codex.cmd login. You can also run -Agent claude or -Agent demo."
   }
   throw "Could not find '$Agent' on PATH. Install the official CLI, set CODEXNOMAD_$($Agent.ToUpper())_BIN, or run with -Agent demo to test QR/E2EE without a real agent."
 }

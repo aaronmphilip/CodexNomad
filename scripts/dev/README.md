@@ -28,7 +28,7 @@ before using `-Agent codex`:
 
 ```powershell
 npm.cmd install -g @openai/codex
-codex.cmd --login
+codex.cmd login
 ```
 
 Use `-Agent claude` for Claude Code:

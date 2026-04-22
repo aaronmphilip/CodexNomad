@@ -37,7 +37,7 @@ func TestResolveExecutableRejectsWindowsCodexAppBinary(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "npm.cmd install -g @openai/codex") {
 		t.Fatalf("Codex install hint missing from error: %v", err)
 	}
-	if !strings.Contains(err.Error(), "codex.cmd --login") {
+	if !strings.Contains(err.Error(), "codex.cmd login") {
 		t.Fatalf("Windows login hint missing from error: %v", err)
 	}
 }

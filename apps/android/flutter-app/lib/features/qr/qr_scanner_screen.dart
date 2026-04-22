@@ -70,6 +70,29 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          PhosphorIconsRegular.laptop,
+                          color: scheme.secondary,
+                          size: 21,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'Run this on your computer. It prints the QR this camera needs, while keys and local tools stay on that computer.',
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodyMedium
+                                ?.copyWith(
+                                  color: scheme.onSurfaceVariant,
+                                ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
                     SegmentedButton<AgentKind>(
                       segments: const [
                         ButtonSegment(

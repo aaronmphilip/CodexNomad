@@ -2,6 +2,7 @@ import 'package:codex_nomad/models/pairing_payload.dart';
 import 'package:codex_nomad/providers/app_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -58,6 +59,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               subtitle: const Text('Approval and session update alerts'),
               secondary: Icon(Icons.notifications_active_rounded,
                   color: scheme.primary),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Card(
+            child: ListTile(
+              leading: Icon(Icons.route_rounded, color: scheme.primary),
+              title: const Text('Setup Guide'),
+              subtitle: const Text(
+                'Replay the local pairing walkthrough and copy commands.',
+              ),
+              trailing: const Icon(Icons.arrow_forward_rounded),
+              onTap: () => context.push('/onboarding'),
             ),
           ),
           const SizedBox(height: 12),

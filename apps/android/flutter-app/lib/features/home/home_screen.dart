@@ -47,6 +47,7 @@ class HomeScreen extends ConsumerWidget {
             _LocalStatusPanel(
               lastPairing: controller.lastPairing,
               onScan: () => context.push('/scan'),
+              onGuide: () => context.push('/onboarding'),
               onReconnect: controller.lastPairing == null
                   ? null
                   : () async {
@@ -157,11 +158,13 @@ class HomeScreen extends ConsumerWidget {
 class _LocalStatusPanel extends StatelessWidget {
   const _LocalStatusPanel({
     required this.onScan,
+    required this.onGuide,
     required this.lastPairing,
     required this.onReconnect,
   });
 
   final VoidCallback onScan;
+  final VoidCallback onGuide;
   final PairingPayload? lastPairing;
   final VoidCallback? onReconnect;
 
@@ -206,10 +209,22 @@ class _LocalStatusPanel extends StatelessWidget {
             style: Theme.of(context).textTheme.bodyLarge,
           ),
           const SizedBox(height: 18),
-          FilledButton.icon(
-            onPressed: onScan,
-            icon: const Icon(PhosphorIconsRegular.qrCode),
-            label: const Text('Scan local QR'),
+          Row(
+            children: [
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: onScan,
+                  icon: const Icon(PhosphorIconsRegular.qrCode),
+                  label: const Text('Scan QR'),
+                ),
+              ),
+              const SizedBox(width: 10),
+              IconButton.outlined(
+                tooltip: 'Setup guide',
+                onPressed: onGuide,
+                icon: const Icon(PhosphorIconsRegular.mapTrifold),
+              ),
+            ],
           ),
           if (lastPairing != null) ...[
             const SizedBox(height: 12),

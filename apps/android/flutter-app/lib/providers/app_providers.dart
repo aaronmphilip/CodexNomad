@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:codex_nomad/core/config/app_config.dart';
 import 'package:codex_nomad/core/services/local_pairing_store.dart';
 import 'package:codex_nomad/core/services/notification_service.dart';
+import 'package:codex_nomad/core/services/onboarding_store.dart';
 import 'package:codex_nomad/core/services/relay_service.dart';
 import 'package:codex_nomad/core/services/supabase_service.dart';
 import 'package:codex_nomad/core/services/voice_service.dart';
@@ -31,6 +32,11 @@ final authControllerProvider = ChangeNotifierProvider<AuthController>((ref) {
   return AuthController(ref.watch(supabaseServiceProvider));
 });
 
+final onboardingControllerProvider =
+    ChangeNotifierProvider<OnboardingController>((ref) {
+  return OnboardingController();
+});
+
 final sessionControllerProvider =
     ChangeNotifierProvider<SessionController>((ref) {
   return SessionController(
@@ -38,6 +44,48 @@ final sessionControllerProvider =
     ref.watch(notificationServiceProvider),
   );
 });
+
+class OnboardingController extends ChangeNotifier {
+  OnboardingController({OnboardingStore? store})
+      : _store = store ?? OnboardingStore() {
+    unawaited(_load());
+  }
+
+  final OnboardingStore _store;
+  bool _loaded = false;
+  bool _completed = false;
+
+  bool get loaded => _loaded;
+  bool get completed => _completed;
+
+  Future<void> complete() async {
+    _loaded = true;
+    _completed = true;
+    notifyListeners();
+    await _store.saveCompleted(true);
+  }
+
+  Future<void> reset() async {
+    _loaded = true;
+    _completed = false;
+    notifyListeners();
+    await _store.saveCompleted(false);
+  }
+
+  Future<void> _load() async {
+    try {
+      _completed = await _store.loadCompleted().timeout(
+            const Duration(milliseconds: 900),
+            onTimeout: () => false,
+          );
+    } catch (_) {
+      _completed = false;
+    } finally {
+      _loaded = true;
+      notifyListeners();
+    }
+  }
+}
 
 class AuthController extends ChangeNotifier {
   AuthController(this._supabase);

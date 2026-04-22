@@ -79,12 +79,12 @@ class _LaunchScreen extends StatelessWidget {
                     child: Transform.scale(scale: value, child: child),
                   );
                 },
-                child: const CodexNomadMark(size: 64),
+                child: const CodexNomadMark(size: 72, showFrame: false),
               ),
               const SizedBox(height: 18),
               Text(
                 'Codex Nomad',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w900,
                     ),
               ),

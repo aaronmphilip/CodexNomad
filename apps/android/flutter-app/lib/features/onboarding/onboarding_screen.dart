@@ -23,10 +23,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   int _page = 0;
   AgentKind _agent = AgentKind.codex;
 
-  String get _pairCommand {
-    return _agent == AgentKind.claude
-        ? 'codexnomad pair claude'
-        : 'codexnomad pair';
+  String get _windowsLocalTestCommand {
+    final agent = _agent == AgentKind.claude ? 'claude' : 'codex';
+    return 'powershell -NoProfile -ExecutionPolicy Bypass -File .\\scripts\\dev\\start-local-test-windows.ps1 -Agent $agent';
   }
 
   @override
@@ -138,7 +137,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         eyebrow: 'Step 2',
         title: 'Start the agent you want to control.',
         body:
-            'Pick Codex or Claude, then run the command on your computer. It creates a short-lived QR code for this phone and this session.',
+            'Pick Codex or Claude, then run the local test command on your computer. It starts the relay and prints a short-lived QR code for this phone.',
         why:
             'Short-lived pairing reduces risk if somebody screenshots or reuses an old code.',
         children: [
@@ -160,9 +159,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           ),
           const SizedBox(height: 12),
           _CommandBlock(
-            title: 'Run on your computer',
-            command: _pairCommand,
-            onCopy: () => _copy(_pairCommand),
+            title: 'Windows local test',
+            command: _windowsLocalTestCommand,
+            onCopy: () => _copy(_windowsLocalTestCommand),
           ),
           const _TrustRow(
             icon: PhosphorIconsRegular.warningCircle,
@@ -251,14 +250,14 @@ class _TopBar extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(20, 14, 12, 8),
       child: Row(
         children: [
-          const CodexNomadMark(size: 36),
-          const SizedBox(width: 10),
+          const CodexNomadMark(size: 32, showFrame: false),
+          const SizedBox(width: 8),
           Expanded(
             child: Text(
               'Codex Nomad',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w900,
                   ),
             ),
@@ -328,18 +327,12 @@ class _OnboardingPage extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
       children: [
-        Container(
-          width: 72,
-          height: 72,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(8),
-            color: scheme.primary.withValues(alpha: 0.14),
-            border: Border.all(color: scheme.primary.withValues(alpha: 0.38)),
-          ),
-          child: Icon(icon, color: scheme.primary, size: 34),
+        SizedBox(
+          width: 64,
+          height: 64,
+          child: Icon(icon, color: scheme.primary, size: 40),
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 18),
         Text(
           eyebrow,
           style: Theme.of(context).textTheme.labelLarge?.copyWith(
@@ -350,9 +343,9 @@ class _OnboardingPage extends StatelessWidget {
         const SizedBox(height: 8),
         Text(
           title,
-          style: Theme.of(context).textTheme.displaySmall?.copyWith(
+          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                 fontWeight: FontWeight.w900,
-                height: 1.02,
+                height: 1.06,
               ),
         ),
         const SizedBox(height: 14),
@@ -516,7 +509,7 @@ class _CommandBlock extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              IconButton.filledTonal(
+              IconButton(
                 tooltip: 'Copy command',
                 onPressed: onCopy,
                 icon: const Icon(PhosphorIconsRegular.copy),
@@ -548,6 +541,7 @@ class _BottomControls extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Row(
       children: [
         IconButton.outlined(
@@ -555,23 +549,25 @@ class _BottomControls extends StatelessWidget {
           onPressed: onBack,
           icon: const Icon(PhosphorIconsRegular.arrowLeft),
         ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: OutlinedButton(
-            onPressed: onSecondary,
-            child: const Text('Inbox'),
-          ),
+        const SizedBox(width: 8),
+        IconButton.outlined(
+          tooltip: 'Inbox',
+          onPressed: onSecondary,
+          icon: const Icon(Icons.inbox_rounded),
         ),
-        const SizedBox(width: 10),
+        const SizedBox(width: 8),
         Expanded(
-          flex: 2,
           child: FilledButton.icon(
             onPressed: onNext,
-            icon: Icon(
-              _last
-                  ? PhosphorIconsRegular.qrCode
-                  : PhosphorIconsRegular.arrowRight,
-            ),
+            icon: _last
+                ? Text(
+                    '</',
+                    style: TextStyle(
+                      color: scheme.onPrimary,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  )
+                : const Icon(PhosphorIconsRegular.arrowRight),
             label: Text(_last ? 'Pair now' : 'Continue'),
           ),
         ),

@@ -39,7 +39,9 @@ class AppTheme {
         ? Typography.material2021(platform: TargetPlatform.android).white
         : Typography.material2021(platform: TargetPlatform.android).black;
     final textTheme = _zeroLetterSpacing(
-      GoogleFonts.bricolageGrotesqueTextTheme(baseTextTheme),
+      _compactTextTheme(
+        GoogleFonts.bricolageGrotesqueTextTheme(baseTextTheme),
+      ),
     );
     return ThemeData(
       useMaterial3: true,
@@ -90,6 +92,9 @@ class AppTheme {
           foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           minimumSize: const Size(48, 48),
+          textStyle: textTheme.labelLarge?.copyWith(
+            fontWeight: FontWeight.w800,
+          ),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
@@ -98,6 +103,9 @@ class AppTheme {
           side: const BorderSide(color: _outline),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           minimumSize: const Size(48, 48),
+          textStyle: textTheme.labelLarge?.copyWith(
+            fontWeight: FontWeight.w800,
+          ),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
@@ -128,6 +136,32 @@ class AppTheme {
       labelLarge: theme.labelLarge?.copyWith(letterSpacing: 0),
       labelMedium: theme.labelMedium?.copyWith(letterSpacing: 0),
       labelSmall: theme.labelSmall?.copyWith(letterSpacing: 0),
+    );
+  }
+
+  static TextTheme _compactTextTheme(TextTheme theme) {
+    TextStyle? compact(TextStyle? style) {
+      final size = style?.fontSize;
+      if (style == null || size == null) return style;
+      return style.copyWith(fontSize: size * 0.94);
+    }
+
+    return theme.copyWith(
+      displayLarge: compact(theme.displayLarge),
+      displayMedium: compact(theme.displayMedium),
+      displaySmall: compact(theme.displaySmall),
+      headlineLarge: compact(theme.headlineLarge),
+      headlineMedium: compact(theme.headlineMedium),
+      headlineSmall: compact(theme.headlineSmall),
+      titleLarge: compact(theme.titleLarge),
+      titleMedium: compact(theme.titleMedium),
+      titleSmall: compact(theme.titleSmall),
+      bodyLarge: compact(theme.bodyLarge),
+      bodyMedium: compact(theme.bodyMedium),
+      bodySmall: compact(theme.bodySmall),
+      labelLarge: compact(theme.labelLarge),
+      labelMedium: compact(theme.labelMedium),
+      labelSmall: compact(theme.labelSmall),
     );
   }
 }

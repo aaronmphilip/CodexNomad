@@ -34,13 +34,34 @@ curl -fsSL https://codexnomad.pro/install | sh
 
 Running the installer again updates the daemon in place.
 
-Start a Codex session:
+For local phone testing before `codexnomad.pro` is deployed, start the relay and
+agent session from the repo root:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\dev\start-local-test-windows.ps1 -Agent claude
+```
+
+For Codex on Windows, the Codex desktop app binary is not enough. Install the
+Codex CLI first:
+
+```powershell
+npm.cmd install -g @openai/codex
+codex.cmd --login
+```
+
+Then run:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\dev\start-local-test-windows.ps1 -Agent codex
+```
+
+After the hosted relay is deployed, start a Codex session directly:
 
 ```sh
 codexnomad codex
 ```
 
-Start a Claude Code session:
+Start a Claude Code session directly:
 
 ```sh
 codexnomad claude

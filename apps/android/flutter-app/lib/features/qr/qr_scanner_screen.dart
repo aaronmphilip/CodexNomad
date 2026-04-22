@@ -20,9 +20,8 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
   bool _handled = false;
 
   String get _command {
-    return _agent == AgentKind.claude
-        ? 'codexnomad pair claude'
-        : 'codexnomad pair';
+    final agent = _agent == AgentKind.claude ? 'claude' : 'codex';
+    return 'powershell -NoProfile -ExecutionPolicy Bypass -File .\\scripts\\dev\\start-local-test-windows.ps1 -Agent $agent';
   }
 
   @override
@@ -35,89 +34,81 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Pair Local'),
-        actions: [
-          IconButton(
-            tooltip: 'Paste command',
-            onPressed: _copyCommand,
-            icon: const Icon(PhosphorIconsRegular.copy),
-          ),
-        ],
-      ),
-      body: Stack(
-        fit: StackFit.expand,
+      appBar: AppBar(title: const Text('Pair Local')),
+      body: Column(
         children: [
-          MobileScanner(
-            controller: _scanner,
-            onDetect: _handleDetect,
+          Expanded(
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                MobileScanner(
+                  controller: _scanner,
+                  onDetect: _handleDetect,
+                ),
+                const _ScannerShade(),
+                const Center(child: _ScanFrame()),
+              ],
+            ),
           ),
-          const _ScannerShade(),
-          const Center(child: _ScanFrame()),
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: SafeArea(
-              top: false,
-              child: Container(
-                margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(8),
-                  color: scheme.surface.withValues(alpha: 0.96),
-                  border: Border.all(color: scheme.outlineVariant),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Icon(
-                          PhosphorIconsRegular.laptop,
-                          color: scheme.secondary,
-                          size: 21,
+          SafeArea(
+            top: false,
+            child: Container(
+              margin: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                color: scheme.surfaceContainerHighest.withValues(alpha: 0.72),
+                border: Border.all(color: scheme.outlineVariant),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        PhosphorIconsRegular.laptop,
+                        color: scheme.secondary,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'Run this on your computer. It starts the local relay, then prints the QR for this camera.',
+                          style:
+                              Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: scheme.onSurfaceVariant,
+                                  ),
                         ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            'Run this on your computer. It prints the QR this camera needs, while keys and local tools stay on that computer.',
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodyMedium
-                                ?.copyWith(
-                                  color: scheme.onSurfaceVariant,
-                                ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    SegmentedButton<AgentKind>(
-                      segments: const [
-                        ButtonSegment(
-                          value: AgentKind.codex,
-                          icon: Icon(PhosphorIconsRegular.terminalWindow),
-                          label: Text('Codex'),
-                        ),
-                        ButtonSegment(
-                          value: AgentKind.claude,
-                          icon: Icon(PhosphorIconsRegular.sparkle),
-                          label: Text('Claude'),
-                        ),
-                      ],
-                      selected: {_agent},
-                      onSelectionChanged: (value) {
-                        setState(() => _agent = value.first);
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                    _CommandStrip(
-                      command: _command,
-                      onCopy: _copyCommand,
-                    ),
-                  ],
-                ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  SegmentedButton<AgentKind>(
+                    segments: const [
+                      ButtonSegment(
+                        value: AgentKind.codex,
+                        icon: Icon(PhosphorIconsRegular.terminalWindow),
+                        label: Text('Codex'),
+                      ),
+                      ButtonSegment(
+                        value: AgentKind.claude,
+                        icon: Icon(PhosphorIconsRegular.sparkle),
+                        label: Text('Claude'),
+                      ),
+                    ],
+                    selected: {_agent},
+                    onSelectionChanged: (value) {
+                      setState(() => _agent = value.first);
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  _CommandStrip(
+                    command: _command,
+                    onCopy: _copyCommand,
+                  ),
+                ],
               ),
             ),
           ),
@@ -221,10 +212,12 @@ class _CommandStrip extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(
-            PhosphorIconsRegular.terminal,
-            color: scheme.secondary,
-            size: 21,
+          Text(
+            '</',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: scheme.secondary,
+                  fontWeight: FontWeight.w900,
+                ),
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -239,7 +232,7 @@ class _CommandStrip extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          IconButton.filledTonal(
+          IconButton(
             tooltip: 'Copy command',
             onPressed: onCopy,
             icon: const Icon(PhosphorIconsRegular.copy),

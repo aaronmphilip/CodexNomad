@@ -8,11 +8,20 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
-class HomeScreen extends ConsumerWidget {
+enum _HomeMode { local, cloud }
+
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends ConsumerState<HomeScreen> {
+  _HomeMode _mode = _HomeMode.local;
+
+  @override
+  Widget build(BuildContext context) {
     final controller = ref.watch(sessionControllerProvider);
     final sessions = controller.recentSessions;
     final state = controller.state;
@@ -25,7 +34,7 @@ class HomeScreen extends ConsumerWidget {
         title: const Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            CodexNomadMark(size: 30),
+            CodexNomadMark(size: 30, showFrame: false),
             SizedBox(width: 10),
             Text('Agent Inbox'),
           ],
@@ -43,121 +52,230 @@ class HomeScreen extends ConsumerWidget {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => context.push('/scan'),
-        icon: const Icon(PhosphorIconsRegular.qrCode),
-        label: const Text('Pair local'),
-      ),
+      floatingActionButton: _mode == _HomeMode.local
+          ? FloatingActionButton.extended(
+              onPressed: () => context.push('/scan'),
+              icon: const Text(
+                '</',
+                style: TextStyle(fontWeight: FontWeight.w900),
+              ),
+              label: const Text('Pair local'),
+            )
+          : null,
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 96),
           children: [
-            _LocalStatusPanel(
-              lastPairing: controller.lastPairing,
-              onScan: () => context.push('/scan'),
-              onGuide: () => context.push('/onboarding'),
-              onReconnect: controller.lastPairing == null
-                  ? null
-                  : () async {
-                      final connected = await ref
-                          .read(sessionControllerProvider)
-                          .reconnectLastPairing();
-                      if (context.mounted && connected) context.push('/live');
-                    },
+            _ModeTabs(
+              selected: _mode,
+              onChanged: (mode) => setState(() => _mode = mode),
             ),
-            const SizedBox(height: 18),
-            Row(
-              children: [
-                Expanded(
-                  child: _MetricTile(
-                    icon: PhosphorIconsRegular.robot,
-                    label: 'Agents',
-                    value: '${sessions.length}',
-                    active: sessions.isNotEmpty,
+            const SizedBox(height: 16),
+            if (_mode == _HomeMode.local) ...[
+              _LocalStatusPanel(
+                lastPairing: controller.lastPairing,
+                onScan: () => context.push('/scan'),
+                onGuide: () => context.push('/onboarding'),
+                onReconnect: controller.lastPairing == null
+                    ? null
+                    : () async {
+                        final connected = await ref
+                            .read(sessionControllerProvider)
+                            .reconnectLastPairing();
+                        if (context.mounted && connected) context.push('/live');
+                      },
+              ),
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  Expanded(
+                    child: _MetricTile(
+                      icon: PhosphorIconsRegular.robot,
+                      label: 'Agents',
+                      value: '${sessions.length}',
+                      active: sessions.isNotEmpty,
+                    ),
                   ),
-                ),
-                const SizedBox(width: 10),
-                const Expanded(
-                  child: _MetricTile(
-                    icon: PhosphorIconsRegular.laptop,
-                    label: 'Mode',
-                    value: 'Local',
-                    active: true,
+                  const SizedBox(width: 10),
+                  const Expanded(
+                    child: _MetricTile(
+                      icon: PhosphorIconsRegular.laptop,
+                      label: 'Mode',
+                      value: 'Local',
+                      active: true,
+                    ),
                   ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: _MetricTile(
-                    icon: PhosphorIconsRegular.bellRinging,
-                    label: 'Actions',
-                    value: '${inboxItems.length}',
-                    active: inboxItems.isNotEmpty,
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _MetricTile(
+                      icon: PhosphorIconsRegular.bellRinging,
+                      label: 'Actions',
+                      value: '${inboxItems.length}',
+                      active: inboxItems.isNotEmpty,
+                    ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-            _SectionHeader(
-              title: 'Needs Attention',
-              trailing: inboxItems.isEmpty ? 'Clear' : '${inboxItems.length}',
-            ),
-            const SizedBox(height: 12),
-            if (inboxItems.isEmpty)
-              const _EmptyInbox()
-            else
-              for (final item in inboxItems)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: _InboxCard(item: item),
-                ),
-            const SizedBox(height: 24),
-            _SectionHeader(
-              title: 'Local Sessions',
-              trailing: sessions.isEmpty ? 'None' : '${sessions.length}',
-            ),
-            const SizedBox(height: 12),
-            if (sessions.isEmpty)
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(18),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Icon(PhosphorIconsRegular.terminalWindow,
-                          color: scheme.primary),
-                      const SizedBox(height: 12),
-                      Text(
-                        'No live local agent',
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        'Run codexnomad pair on your computer, then scan the QR.',
-                        style: Theme.of(context).textTheme.bodyMedium,
-                      ),
-                    ],
-                  ),
-                ),
-              )
-            else
-              ...sessions.map((s) => Padding(
+                ],
+              ),
+              const SizedBox(height: 24),
+              _SectionHeader(
+                title: 'Needs Attention',
+                trailing: inboxItems.isEmpty ? 'Clear' : '${inboxItems.length}',
+              ),
+              const SizedBox(height: 12),
+              if (inboxItems.isEmpty)
+                const _EmptyInbox()
+              else
+                for (final item in inboxItems)
+                  Padding(
                     padding: const EdgeInsets.only(bottom: 10),
-                    child: SessionCard(summary: s),
-                  )),
-            const SizedBox(height: 22),
-            if (!auth.configured)
-              _AuthNudge(
-                text:
-                    'Supabase auth is not configured. Local sessions still work.',
-                icon: Icons.info_outline_rounded,
-              )
-            else if (!auth.signedIn)
-              _AuthNudge(
-                text: 'Sign in from Settings to sync session history.',
-                icon: Icons.lock_open_rounded,
+                    child: _InboxCard(item: item),
+                  ),
+              const SizedBox(height: 24),
+              _SectionHeader(
+                title: 'Local Sessions',
+                trailing: sessions.isEmpty ? 'None' : '${sessions.length}',
+              ),
+              const SizedBox(height: 12),
+              if (sessions.isEmpty)
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(18),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(PhosphorIconsRegular.terminalWindow,
+                            color: scheme.primary),
+                        const SizedBox(height: 12),
+                        Text(
+                          'No live local agent',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Start a local test session on your computer, then scan the QR.',
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              else
+                ...sessions.map((s) => Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: SessionCard(summary: s),
+                    )),
+            ] else
+              _CloudModePanel(
+                configured: auth.configured,
+                signedIn: auth.signedIn,
+                email: auth.email,
+                onSettings: () => context.push('/settings'),
               ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _ModeTabs extends StatelessWidget {
+  const _ModeTabs({required this.selected, required this.onChanged});
+
+  final _HomeMode selected;
+  final ValueChanged<_HomeMode> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return SegmentedButton<_HomeMode>(
+      showSelectedIcon: false,
+      segments: const [
+        ButtonSegment(
+          value: _HomeMode.local,
+          icon: Icon(PhosphorIconsRegular.laptop),
+          label: Text('Local'),
+        ),
+        ButtonSegment(
+          value: _HomeMode.cloud,
+          icon: Icon(PhosphorIconsRegular.cloud),
+          label: Text('Cloud'),
+        ),
+      ],
+      selected: {selected},
+      onSelectionChanged: (value) => onChanged(value.first),
+    );
+  }
+}
+
+class _CloudModePanel extends StatelessWidget {
+  const _CloudModePanel({
+    required this.configured,
+    required this.signedIn,
+    required this.email,
+    required this.onSettings,
+  });
+
+  final bool configured;
+  final bool signedIn;
+  final String? email;
+  final VoidCallback onSettings;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final title = signedIn ? 'Cloud account connected' : 'Cloud runners';
+    final detail = configured
+        ? signedIn
+            ? 'Signed in as ${email ?? 'your account'}. Cloud runners can be attached when the backend is deployed.'
+            : 'Sign in to attach cloud runners once the hosted backend is deployed.'
+        : 'Local mode does not need Supabase. Cloud mode will use the hosted account backend for sign-in, billing, and runner ownership.';
+
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(8),
+        color: scheme.surfaceContainerHighest.withValues(alpha: 0.72),
+        border:
+            Border.all(color: scheme.outlineVariant.withValues(alpha: 0.72)),
+      ),
+      padding: const EdgeInsets.all(18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(PhosphorIconsRegular.cloud, color: scheme.primary),
+              const SizedBox(width: 8),
+              Text(
+                'PC-off mode',
+                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                      color: scheme.primary,
+                      fontWeight: FontWeight.w800,
+                    ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            title,
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  height: 1.08,
+                ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            detail,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                ),
+          ),
+          const SizedBox(height: 16),
+          FilledButton.icon(
+            onPressed: onSettings,
+            icon: const Icon(Icons.tune_rounded),
+            label:
+                Text(configured ? 'Open cloud settings' : 'View cloud setup'),
+          ),
+        ],
       ),
     );
   }
@@ -499,28 +617,5 @@ class _InboxCard extends StatelessWidget {
       AttentionKind.connection => PhosphorIconsRegular.cloudWarning,
       AttentionKind.error => PhosphorIconsRegular.warningCircle,
     };
-  }
-}
-
-class _AuthNudge extends StatelessWidget {
-  const _AuthNudge({required this.text, required this.icon});
-
-  final String text;
-  final IconData icon;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Row(
-          children: [
-            Icon(icon),
-            const SizedBox(width: 12),
-            Expanded(child: Text(text)),
-          ],
-        ),
-      ),
-    );
   }
 }

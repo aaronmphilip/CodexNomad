@@ -28,4 +28,7 @@ if [ ! -f "$archive" ]; then
 fi
 
 printf '\n==> Installing local Codex Nomad daemon build\n'
-CODEXNOMAD_ARCHIVE="$archive" sh "$root/install.sh"
+CODEXNOMAD_ARCHIVE="$archive" \
+CODEXNOMAD_NO_SERVICE=1 \
+CODEXNOMAD_SKIP_DOCTOR=1 \
+sh "$root/install.sh"

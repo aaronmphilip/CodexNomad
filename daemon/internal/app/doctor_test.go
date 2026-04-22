@@ -1,6 +1,10 @@
 package app
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/codexnomad/codexnomad/daemon/internal/cliwrap"
+)
 
 func TestRelayHealthURL(t *testing.T) {
 	t.Parallel()
@@ -44,7 +48,7 @@ func TestRelayHealthURLRejectsHTTP(t *testing.T) {
 
 func TestMissingRequiredAgentCLIFailsDoctor(t *testing.T) {
 	t.Parallel()
-	check := checkOneAgentCLI("missing cli", "codexnomad-definitely-missing-binary", true)
+	check := checkOneAgentCLI(cliwrap.AgentCodex, "missing cli", "codexnomad-definitely-missing-binary", true)
 	if check.Status != doctorFail {
 		t.Fatalf("missing required CLI status = %s, want %s", check.Status, doctorFail)
 	}
@@ -55,7 +59,7 @@ func TestMissingRequiredAgentCLIFailsDoctor(t *testing.T) {
 
 func TestMissingOptionalAgentCLIWarnsDoctor(t *testing.T) {
 	t.Parallel()
-	check := checkOneAgentCLI("missing cli", "codexnomad-definitely-missing-binary", false)
+	check := checkOneAgentCLI(cliwrap.AgentCodex, "missing cli", "codexnomad-definitely-missing-binary", false)
 	if check.Status != doctorWarn {
 		t.Fatalf("missing optional CLI status = %s, want %s", check.Status, doctorWarn)
 	}

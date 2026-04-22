@@ -13,6 +13,7 @@ import (
 	"text/tabwriter"
 	"time"
 
+	"github.com/codexnomad/codexnomad/daemon/internal/cliwrap"
 	"github.com/codexnomad/codexnomad/daemon/internal/config"
 	"github.com/codexnomad/codexnomad/daemon/internal/session"
 )
@@ -126,10 +127,10 @@ func checkTrustedDevices(cfg config.Config) doctorCheck {
 func checkAgentCLIs(cfg config.Config, target string) []doctorCheck {
 	checks := make([]doctorCheck, 0, 2)
 	if target == "all" || target == string(session.AgentCodex) {
-		checks = append(checks, checkOneAgentCLI("codex cli", cfg.CodexBin, target == string(session.AgentCodex)))
+		checks = append(checks, checkOneAgentCLI(cliwrap.AgentCodex, "codex cli", cfg.CodexBin, target == string(session.AgentCodex)))
 	}
 	if target == "all" || target == string(session.AgentClaude) {
-		checks = append(checks, checkOneAgentCLI("claude cli", cfg.ClaudeBin, target == string(session.AgentClaude)))
+		checks = append(checks, checkOneAgentCLI(cliwrap.AgentClaude, "claude cli", cfg.ClaudeBin, target == string(session.AgentClaude)))
 	}
 	if target == "all" {
 		found := false
@@ -149,8 +150,8 @@ func checkAgentCLIs(cfg config.Config, target string) []doctorCheck {
 	return checks
 }
 
-func checkOneAgentCLI(name, bin string, fatal bool) doctorCheck {
-	path, err := exec.LookPath(bin)
+func checkOneAgentCLI(agent cliwrap.Agent, name, bin string, fatal bool) doctorCheck {
+	path, err := cliwrap.ResolveExecutable(agent, bin)
 	if err != nil {
 		status := doctorWarn
 		if fatal {
@@ -159,7 +160,7 @@ func checkOneAgentCLI(name, bin string, fatal bool) doctorCheck {
 		return doctorCheck{
 			Name:   name,
 			Status: status,
-			Detail: fmt.Sprintf("%q not found on PATH", bin),
+			Detail: err.Error(),
 			Fatal:  fatal,
 		}
 	}

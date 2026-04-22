@@ -56,7 +56,9 @@ The Unix installer is also idempotent. Running it again stops any existing
 daemon, replaces `codexnomad`, refreshes service/autostart where supported, and
 runs doctor.
 
-Until the hosted release channel exists, use the local dev installers instead:
+Until the hosted release channel exists, use the local dev installers instead.
+They install the local binary and skip autostart/doctor by default so the
+missing public relay does not produce a false production-style failure:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\dev\install-local-windows.ps1

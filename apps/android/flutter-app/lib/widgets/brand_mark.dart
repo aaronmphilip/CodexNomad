@@ -53,10 +53,10 @@ class _CodexNomadMarkPainter extends CustomPainter {
     final radius = Radius.circular(s * 0.18);
     final rrect = RRect.fromRectAndRadius(rect, radius);
 
-    final bgPaint = Paint()..color = background;
-    canvas.drawRRect(rrect, bgPaint);
-
     if (drawFrame) {
+      final bgPaint = Paint()..color = background;
+      canvas.drawRRect(rrect, bgPaint);
+
       final framePaint = Paint()
         ..color = frame
         ..style = PaintingStyle.stroke

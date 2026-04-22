@@ -120,7 +120,7 @@ function Stop-ExistingDaemon {
   param([string]$Exe)
   if (Test-Path -LiteralPath $Exe) {
     try {
-      & $Exe stop | Out-Null
+      & $Exe stop 2>$null | Out-Null
     } catch {
       Write-Host "Existing daemon was not running."
     }

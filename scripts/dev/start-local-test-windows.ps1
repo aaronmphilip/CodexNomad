@@ -42,15 +42,26 @@ function Resolve-AgentBinary {
     if (Test-Path $claudeCmd) {
       return $claudeCmd
     }
+  } else {
+    $codexCmd = Join-Path $env:APPDATA 'npm\codex.cmd'
+    if (Test-Path $codexCmd) {
+      return $codexCmd
+    }
   }
 
   $cmd = Get-Command $cmdName -ErrorAction SilentlyContinue | Select-Object -First 1
   if ($cmd) {
+    if ($AgentName -eq 'codex' -and $cmd.Source -like '*\WindowsApps\OpenAI.Codex_*\app\resources\codex.exe') {
+      return $null
+    }
     return $cmd.Source
   }
 
   $whereResult = & where.exe $cmdName 2>$null | Select-Object -First 1
   if (-not [string]::IsNullOrWhiteSpace($whereResult)) {
+    if ($AgentName -eq 'codex' -and $whereResult -like '*\WindowsApps\OpenAI.Codex_*\app\resources\codex.exe') {
+      return $null
+    }
     return $whereResult
   }
 
@@ -74,7 +85,14 @@ function Get-ConnectedAdbDevice {
   if ([string]::IsNullOrWhiteSpace($Adb)) {
     return $null
   }
-  $devices = & $Adb devices 2>$null
+  try {
+    $devices = & $Adb devices 2>&1
+  } catch {
+    return $null
+  }
+  if ($LASTEXITCODE -ne 0) {
+    return $null
+  }
   foreach ($line in $devices) {
     if ($line -match '^(\S+)\s+device$') {
       return $Matches[1]
@@ -140,6 +158,9 @@ if (-not (Test-Path $daemonExe)) {
 
 $agentBin = Resolve-AgentBinary $Agent
 if ([string]::IsNullOrWhiteSpace($agentBin)) {
+  if ($Agent -eq 'codex') {
+    throw "Could not find a runnable Codex CLI. The Windows Codex app sandbox binary is not enough. Install with: npm.cmd install -g @openai/codex ; then run: codex.cmd --login. You can also run -Agent claude or -Agent demo."
+  }
   throw "Could not find '$Agent' on PATH. Install the official CLI, set CODEXNOMAD_$($Agent.ToUpper())_BIN, or run with -Agent demo to test QR/E2EE without a real agent."
 }
 

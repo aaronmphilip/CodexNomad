@@ -22,7 +22,16 @@ Then close Android Studio completely and reopen it.
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\dev\start-local-test-windows.ps1
 ```
 
-That starts the local relay and a Codex session in separate PowerShell windows. Use `-Agent claude` for Claude Code:
+That starts the local relay and a Codex session in separate PowerShell windows.
+On Windows, the Codex desktop app sandbox binary is not enough; install the CLI
+before using `-Agent codex`:
+
+```powershell
+npm.cmd install -g @openai/codex
+codex.cmd --login
+```
+
+Use `-Agent claude` for Claude Code:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\dev\start-local-test-windows.ps1 -Agent claude

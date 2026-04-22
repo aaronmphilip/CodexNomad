@@ -2,7 +2,9 @@ param(
   [string]$InstallDir,
   [switch]$NoService,
   [switch]$NoPath,
-  [switch]$SkipDoctor
+  [switch]$SkipDoctor,
+  [switch]$WithService,
+  [switch]$RunDoctor
 )
 
 $ErrorActionPreference = 'Stop'
@@ -27,14 +29,20 @@ $installParams = @{
 if ($InstallDir) {
   $installParams.InstallDir = $InstallDir
 }
-if ($NoService) {
+if ($NoService -or -not $WithService) {
   $installParams.NoService = $true
 }
 if ($NoPath) {
   $installParams.NoPath = $true
 }
-if ($SkipDoctor) {
+if ($SkipDoctor -or -not $RunDoctor) {
   $installParams.SkipDoctor = $true
 }
 
 & (Join-Path $repo 'install.ps1') @installParams
+
+Write-Host ''
+Write-Host 'For local phone testing before the hosted relay is deployed, run:'
+Write-Host '  powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\dev\start-local-test-windows.ps1 -Agent claude'
+Write-Host 'or:'
+Write-Host '  powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\dev\start-local-test-windows.ps1 -Agent codex'

@@ -80,7 +80,7 @@ function Ensure-AndroidSigningKey {
 storePassword=codexnomad-ci
 keyPassword=codexnomad-ci
 keyAlias=codexnomad-ci
-storeFile=keystores/codexnomad-ci-upload.jks
+storeFile=../keystores/codexnomad-ci-upload.jks
 '@ | Set-Content -Encoding ASCII -Path $keyProperties
 
   Write-Host "Created ignored CI-only Android signing config: $keyProperties"

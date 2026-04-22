@@ -1,5 +1,4 @@
 import 'package:codex_nomad/models/session_models.dart';
-import 'package:codex_nomad/providers/app_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
@@ -7,11 +6,9 @@ class DiffCard extends StatelessWidget {
   const DiffCard({
     super.key,
     required this.model,
-    required this.controller,
   });
 
   final DiffCardModel model;
-  final SessionController controller;
 
   @override
   Widget build(BuildContext context) {
@@ -38,26 +35,6 @@ class DiffCard extends StatelessWidget {
               maxLines: 14,
               overflow: TextOverflow.fade,
             ),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: FilledButton.icon(
-                  onPressed: () => controller.approve(),
-                  icon: const Icon(PhosphorIconsRegular.checkCircle),
-                  label: const Text('Approve once'),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () => controller.reject(),
-                  icon: const Icon(PhosphorIconsRegular.xCircle),
-                  label: const Text('Deny'),
-                ),
-              ),
-            ],
           ),
         ],
       ),

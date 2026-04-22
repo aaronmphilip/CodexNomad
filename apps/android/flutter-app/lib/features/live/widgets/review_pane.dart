@@ -56,7 +56,7 @@ class ReviewPane extends StatelessWidget {
           for (final diff in state.diffs)
             Padding(
               padding: const EdgeInsets.only(bottom: 10),
-              child: DiffCard(model: diff, controller: controller),
+              child: DiffCard(model: diff),
             ),
         ],
       ],
@@ -178,7 +178,7 @@ class _EmptyReview extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                'No approval or diff is waiting. The terminal stays available when you need raw detail.',
+                'No agent approval is waiting.',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: scheme.onSurfaceVariant,
                     ),

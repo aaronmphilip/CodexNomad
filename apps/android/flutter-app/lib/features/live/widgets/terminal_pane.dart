@@ -23,7 +23,7 @@ class TerminalPane extends StatelessWidget {
           for (final diff in state.diffs)
             Padding(
               padding: const EdgeInsets.only(bottom: 10),
-              child: DiffCard(model: diff, controller: controller),
+              child: DiffCard(model: diff),
             ),
         ],
         DecoratedBox(

@@ -295,10 +295,11 @@ class SessionController extends ChangeNotifier {
         );
         break;
       case 'terminal_output':
-        final text = utf8.decode(
+        final text = _cleanTerminalText(utf8.decode(
           base64StdNoPadDecode(event.data['data'] as String? ?? ''),
           allowMalformed: true,
-        );
+        ));
+        if (text.isEmpty) break;
         final next = [
           ..._state.terminal,
           TerminalChunk(text: text, createdAt: DateTime.now()),
@@ -342,6 +343,15 @@ class SessionController extends ChangeNotifier {
         break;
     }
     notifyListeners();
+  }
+
+  String _cleanTerminalText(String text) {
+    var next = text
+        .replaceAll(RegExp(r'\x1B\][^\x07]*(?:\x07|\x1B\\)'), '')
+        .replaceAll(RegExp(r'\x1B\[[0-?]*[ -/]*[@-~]'), '')
+        .replaceAll(RegExp(r'\x1B[@-Z\\-_]'), '');
+    next = next.replaceAll('\r\n', '\n').replaceAll('\r', '\n');
+    return next.replaceAll(RegExp(r'[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]'), '');
   }
 
   List<DiffCardModel> _extractDiffs(List<TerminalChunk> chunks) {

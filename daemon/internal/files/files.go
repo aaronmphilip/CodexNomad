@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 )
@@ -29,26 +30,81 @@ func GitSnapshot(root string) (Snapshot, error) {
 	if err != nil {
 		return fallbackSnapshot(root)
 	}
+	statusByPath := parseStatus(out)
+	entries := make([]Entry, 0, len(statusByPath))
+	for path, status := range statusByPath {
+		entries = append(entries, entryFor(root, path, status))
+	}
+	sort.SliceStable(entries, func(i, j int) bool {
+		return entries[i].Path < entries[j].Path
+	})
+	return Snapshot{Root: root, Files: entries}, nil
+}
+
+func ProjectSnapshot(root string) (Snapshot, error) {
+	cmd := exec.Command("git", "-C", root, "status", "--porcelain=v1", "-z")
+	out, err := cmd.Output()
+	if err != nil {
+		return fallbackSnapshot(root)
+	}
+	statusByPath := parseStatus(out)
+	pathsOut, err := exec.Command("git", "-C", root, "ls-files", "-co", "--exclude-standard", "-z").Output()
+	if err != nil {
+		return fallbackSnapshot(root)
+	}
+	paths := strings.Split(string(pathsOut), "\x00")
+	sort.Strings(paths)
+	seen := make(map[string]bool, len(paths))
+	entries := make([]Entry, 0, len(paths)+len(statusByPath))
+	for _, path := range paths {
+		path = strings.TrimSpace(path)
+		if path == "" {
+			continue
+		}
+		path = filepath.ToSlash(path)
+		seen[path] = true
+		status := statusByPath[path]
+		if status == "" {
+			status = "tracked"
+		}
+		entries = append(entries, entryFor(root, path, status))
+	}
+	for path, status := range statusByPath {
+		if !seen[path] {
+			entries = append(entries, entryFor(root, path, status))
+		}
+	}
+	sort.SliceStable(entries, func(i, j int) bool {
+		return entries[i].Path < entries[j].Path
+	})
+	return Snapshot{Root: root, Files: entries}, nil
+}
+
+func parseStatus(out []byte) map[string]string {
+	statusByPath := make(map[string]string)
 	parts := strings.Split(string(out), "\x00")
-	entries := make([]Entry, 0, len(parts))
-	for _, p := range parts {
+	for i := 0; i < len(parts); i++ {
+		p := parts[i]
 		if p == "" || len(p) < 4 {
 			continue
 		}
 		status := strings.TrimSpace(p[:2])
 		path := strings.TrimSpace(p[3:])
-		if strings.Contains(path, " -> ") {
-			chunks := strings.Split(path, " -> ")
-			path = chunks[len(chunks)-1]
+		if len(status) > 0 && status[0] == 'R' && i+1 < len(parts) && parts[i+1] != "" {
+			i++
 		}
-		entry := Entry{Path: filepath.ToSlash(path), Status: status}
-		if st, err := os.Stat(filepath.Join(root, filepath.FromSlash(path))); err == nil && !st.IsDir() {
-			entry.Size = st.Size()
-			entry.Modified = st.ModTime().UTC()
-		}
-		entries = append(entries, entry)
+		statusByPath[filepath.ToSlash(path)] = status
 	}
-	return Snapshot{Root: root, Files: entries}, nil
+	return statusByPath
+}
+
+func entryFor(root, path, status string) Entry {
+	entry := Entry{Path: filepath.ToSlash(path), Status: status}
+	if st, err := os.Stat(filepath.Join(root, filepath.FromSlash(path))); err == nil && !st.IsDir() {
+		entry.Size = st.Size()
+		entry.Modified = st.ModTime().UTC()
+	}
+	return entry
 }
 
 func GitDiff(root string, limit int) ([]byte, error) {

@@ -2,7 +2,6 @@ import 'package:codex_nomad/features/live/widgets/chat_pane.dart';
 import 'package:codex_nomad/features/live/widgets/editor_pane.dart';
 import 'package:codex_nomad/features/live/widgets/file_browser_pane.dart';
 import 'package:codex_nomad/features/live/widgets/review_pane.dart';
-import 'package:codex_nomad/features/live/widgets/session_action_bar.dart';
 import 'package:codex_nomad/features/live/widgets/terminal_pane.dart';
 import 'package:codex_nomad/models/session_models.dart';
 import 'package:codex_nomad/providers/app_providers.dart';
@@ -58,7 +57,6 @@ class _LiveSessionScreenState extends ConsumerState<LiveSessionScreen> {
         child: Column(
           children: [
             _StatusStrip(status: state.status, error: state.error),
-            SessionActionBar(controller: controller),
             Expanded(child: _bodyForTab(_tab, state, controller)),
           ],
         ),

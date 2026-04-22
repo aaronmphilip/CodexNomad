@@ -410,7 +410,7 @@ func handleCiphertext(msg relay.WireMessage, sender *secureSender, proc *termina
 			"action": "reject",
 		}, false)
 	case "file_list":
-		snap, err := files.GitSnapshot(root)
+		snap, err := files.ProjectSnapshot(root)
 		if err != nil {
 			return err
 		}

@@ -30,13 +30,31 @@ class _ChatPaneState extends State<ChatPane> {
 
   @override
   Widget build(BuildContext context) {
+    final recent = widget.state.terminal.length > 80
+        ? widget.state.terminal.sublist(widget.state.terminal.length - 80)
+        : widget.state.terminal;
+    final agent = widget.state.pairing?.agent.label ?? 'Agent';
     return Column(
       children: [
         Expanded(
           child: ListView(
             padding: const EdgeInsets.all(12),
             children: [
-              for (final chunk in widget.state.terminal.take(80))
+              if (recent.isEmpty)
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(8),
+                      color:
+                          Theme.of(context).colorScheme.surfaceContainerHighest,
+                    ),
+                    child: Text('$agent is ready.'),
+                  ),
+                ),
+              for (final chunk in recent)
                 Align(
                   alignment: Alignment.centerLeft,
                   child: Container(

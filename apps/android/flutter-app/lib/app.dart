@@ -6,6 +6,7 @@ import 'package:codex_nomad/features/onboarding/onboarding_screen.dart';
 import 'package:codex_nomad/features/qr/qr_scanner_screen.dart';
 import 'package:codex_nomad/features/settings/settings_screen.dart';
 import 'package:codex_nomad/providers/app_providers.dart';
+import 'package:codex_nomad/widgets/brand_mark.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -68,14 +69,17 @@ class _LaunchScreen extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                width: 56,
-                height: 56,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(8),
-                  color: scheme.primary.withValues(alpha: 0.16),
-                ),
-                child: Icon(Icons.terminal_rounded, color: scheme.primary),
+              TweenAnimationBuilder<double>(
+                tween: Tween(begin: 0.94, end: 1),
+                duration: const Duration(milliseconds: 420),
+                curve: Curves.easeOutCubic,
+                builder: (context, value, child) {
+                  return Opacity(
+                    opacity: value.clamp(0.0, 1.0),
+                    child: Transform.scale(scale: value, child: child),
+                  );
+                },
+                child: const CodexNomadMark(size: 64),
               ),
               const SizedBox(height: 18),
               Text(

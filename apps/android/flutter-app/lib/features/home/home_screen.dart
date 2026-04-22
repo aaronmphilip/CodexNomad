@@ -2,6 +2,7 @@ import 'package:codex_nomad/features/home/session_card.dart';
 import 'package:codex_nomad/models/pairing_payload.dart';
 import 'package:codex_nomad/models/session_models.dart';
 import 'package:codex_nomad/providers/app_providers.dart';
+import 'package:codex_nomad/widgets/brand_mark.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -21,7 +22,14 @@ class HomeScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Agent Inbox'),
+        title: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CodexNomadMark(size: 30),
+            SizedBox(width: 10),
+            Text('Agent Inbox'),
+          ],
+        ),
         actions: [
           IconButton(
             tooltip: 'Machines',

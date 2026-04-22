@@ -1,4 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="codex_nomad_black">#05030A</color>
+    <color name="codex_nomad_panel">#100B18</color>
+    <color name="codex_nomad_purple">#A855F7</color>
+    <color name="codex_nomad_lavender">#F4E9FF</color>
+    <color name="codex_nomad_icon_background">#05030A</color>
 </resources>

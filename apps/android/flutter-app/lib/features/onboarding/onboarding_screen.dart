@@ -1,5 +1,6 @@
 import 'package:codex_nomad/models/pairing_payload.dart';
 import 'package:codex_nomad/providers/app_providers.dart';
+import 'package:codex_nomad/widgets/brand_mark.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -247,25 +248,11 @@ class _TopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 14, 12, 8),
       child: Row(
         children: [
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(8),
-              color: scheme.primary.withValues(alpha: 0.16),
-              border: Border.all(color: scheme.primary.withValues(alpha: 0.34)),
-            ),
-            child: Icon(
-              PhosphorIconsRegular.command,
-              color: scheme.primary,
-              size: 20,
-            ),
-          ),
+          const CodexNomadMark(size: 36),
           const SizedBox(width: 10),
           Expanded(
             child: Text(

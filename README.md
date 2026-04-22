@@ -4,13 +4,29 @@ Codex Nomad is the Android-first remote-control layer for Codex and Claude Code.
 
 ## Free local mode
 
-Install once on Windows PowerShell:
+Local test install from this repo on Windows PowerShell:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\dev\install-local-windows.ps1
+```
+
+Local test install from this repo on macOS or Linux:
+
+```sh
+sh scripts/dev/install-local-unix.sh
+```
+
+The public installer URLs below are for the future hosted release channel. They
+will fail until `codexnomad.pro` serves the installer scripts and release
+archives.
+
+Future hosted install on Windows PowerShell:
 
 ```powershell
 irm https://codexnomad.pro/install.ps1 | iex
 ```
 
-Install once on macOS or Linux:
+Future hosted install on macOS or Linux:
 
 ```sh
 curl -fsSL https://codexnomad.pro/install | sh

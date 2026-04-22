@@ -15,10 +15,9 @@ class OnboardingScreen extends ConsumerStatefulWidget {
 }
 
 class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
-  static const _installCommand =
-      'curl -fsSL https://codexnomad.pro/install | sh';
+  static const _installCommand = 'sh scripts/dev/install-local-unix.sh';
   static const _windowsInstallCommand =
-      'irm https://codexnomad.pro/install.ps1 | iex';
+      r'powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\dev\install-local-windows.ps1';
 
   final _pageController = PageController();
   int _page = 0;
@@ -113,17 +112,17 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         eyebrow: 'Step 1',
         title: 'Set up the desktop daemon once.',
         body:
-            'Install Codex Nomad on the computer where Codex or Claude Code is already signed in. The daemon starts sessions, prints the QR code, and keeps local secrets off the phone.',
+            'Install Codex Nomad from this repo on the computer where Codex or Claude Code is already signed in. The public installer URL is not live yet, so this test build uses local install commands.',
         why:
             'The phone should never need your OpenAI, Anthropic, GitHub, or shell credentials.',
         children: [
           _CommandBlock(
-            title: 'macOS or Linux',
+            title: 'macOS or Linux repo root',
             command: _installCommand,
             onCopy: () => _copy(_installCommand),
           ),
           _CommandBlock(
-            title: 'Windows PowerShell',
+            title: 'Windows PowerShell repo root',
             command: _windowsInstallCommand,
             onCopy: () => _copy(_windowsInstallCommand),
           ),

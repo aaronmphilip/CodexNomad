@@ -4,6 +4,12 @@ These scripts are for Windows local PC-on testing with a real Android phone.
 
 Fast path:
 
+Install the local daemon build from this repo:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\dev\install-local-windows.ps1
+```
+
 Run this once if Android Studio cannot build `sodium` because it cannot find `bash.exe` or `make.exe`:
 
 ```powershell

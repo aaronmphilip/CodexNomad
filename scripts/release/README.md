@@ -55,3 +55,13 @@ logon task, and runs `codexnomad doctor`.
 The Unix installer is also idempotent. Running it again stops any existing
 daemon, replaces `codexnomad`, refreshes service/autostart where supported, and
 runs doctor.
+
+Until the hosted release channel exists, use the local dev installers instead:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\dev\install-local-windows.ps1
+```
+
+```sh
+sh scripts/dev/install-local-unix.sh
+```

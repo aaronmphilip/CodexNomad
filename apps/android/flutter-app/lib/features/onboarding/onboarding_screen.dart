@@ -18,6 +18,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   static const _installCommand = 'sh scripts/dev/install-local-unix.sh';
   static const _windowsInstallCommand =
       r'powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\dev\install-local-windows.ps1';
+  static const _windowsCodexInstallCommand = 'npm.cmd install -g @openai/codex';
+  static const _windowsCodexLoginCommand = 'codex.cmd login';
 
   final _pageController = PageController();
   int _page = 0;
@@ -157,6 +159,24 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             selected: {_agent},
             onSelectionChanged: (value) => setState(() => _agent = value.first),
           ),
+          if (_agent == AgentKind.codex) ...[
+            const _TrustRow(
+              icon: PhosphorIconsRegular.info,
+              title: 'Codex first-time setup',
+              detail:
+                  'Do this once per machine before running the local test command.',
+            ),
+            _CommandBlock(
+              title: 'Install Codex CLI (Windows)',
+              command: _windowsCodexInstallCommand,
+              onCopy: () => _copy(_windowsCodexInstallCommand),
+            ),
+            _CommandBlock(
+              title: 'Login Codex CLI (Windows)',
+              command: _windowsCodexLoginCommand,
+              onCopy: () => _copy(_windowsCodexLoginCommand),
+            ),
+          ],
           const SizedBox(height: 12),
           _CommandBlock(
             title: 'Windows local test',

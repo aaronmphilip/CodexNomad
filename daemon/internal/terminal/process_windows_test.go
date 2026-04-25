@@ -38,6 +38,19 @@ func TestWindowsConPTYRunsInteractiveCommand(t *testing.T) {
 	waitForText(t, ctx, &mu, &out, "SMOKE_OK")
 }
 
+func TestNormalizeInputUsesCRLFForEnter(t *testing.T) {
+	tests := map[string]string{
+		"hello\n":        "hello\r\n",
+		"hello\r\n":      "hello\r\n",
+		"hello\nworld\n": "hello\r\nworld\r\n",
+	}
+	for input, want := range tests {
+		if got := string(normalizeInput([]byte(input))); got != want {
+			t.Fatalf("normalizeInput(%q) = %q, want %q", input, got, want)
+		}
+	}
+}
+
 func waitForText(t *testing.T, ctx context.Context, mu *sync.Mutex, out *bytes.Buffer, text string) {
 	t.Helper()
 	for {

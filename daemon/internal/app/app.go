@@ -37,6 +37,7 @@ Environment:
   CODEXNOMAD_REQUIRE_RELAY=1    Fail the session if the relay cannot connect
   CODEXNOMAD_CODEX_BIN          Codex executable override. Default: codex
   CODEXNOMAD_CLAUDE_BIN         Claude executable override. Default: claude
+  CODEXNOMAD_ALLOW_APPS_MCP=1   Keep Codex Apps MCP enabled (default disables it for reliability)
   CODEXNOMAD_MODE=cloud         Mark this machine as a cloud runner
 `
 

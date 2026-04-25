@@ -22,6 +22,7 @@ class SupabaseService {
   }
 
   supabase.User? get currentUser => _client?.auth.currentUser;
+  String? get accessToken => _client?.auth.currentSession?.accessToken;
 
   Future<void> sendMagicLink(String email) async {
     final client = _client;

@@ -3,9 +3,13 @@ param(
   [string]$Agent = 'codex',
 
   [switch]$RunApp,
+  [switch]$UseAdbReverse,
   [switch]$SkipBuild,
   [switch]$DryRun,
   [switch]$NoAdbReverse,
+  [switch]$AllowAppsMcp,
+
+  [string]$Workspace = '.',
 
   [int]$Port = 8080
 )
@@ -101,10 +105,43 @@ function Get-ConnectedAdbDevice {
   return $null
 }
 
+function Test-TcpPortAvailable {
+  param([int]$CandidatePort)
+  $existing = Get-NetTCPConnection -State Listen -LocalPort $CandidatePort -ErrorAction SilentlyContinue
+  if ($existing) {
+    return $false
+  }
+  $listener = $null
+  try {
+    $listener = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Any, $CandidatePort)
+    $listener.Start()
+    return $true
+  } catch {
+    return $false
+  } finally {
+    if ($listener) {
+      $listener.Stop()
+    }
+  }
+}
+
+function Resolve-LocalPort {
+  param([int]$PreferredPort)
+  for ($candidate = $PreferredPort; $candidate -lt ($PreferredPort + 50); $candidate++) {
+    if (Test-TcpPortAvailable $candidate) {
+      return $candidate
+    }
+  }
+  throw "No free local relay port found from $PreferredPort to $($PreferredPort + 49)."
+}
+
 $repo = Resolve-Path (Join-Path $PSScriptRoot '..\..')
+$workspacePath = (Resolve-Path -Path $Workspace -ErrorAction Stop).ProviderPath
 $binDir = Join-Path $repo 'bin'
 $relayExe = Join-Path $binDir 'codexnomad-relay.exe'
 $daemonExe = Join-Path $binDir 'codexnomad.exe'
+$requestedPort = $Port
+$Port = Resolve-LocalPort $Port
 
 $localIP = Get-NetIPAddress -AddressFamily IPv4 |
   Where-Object { $_.IPAddress -notlike '127.*' -and $_.IPAddress -notlike '169.254.*' } |
@@ -120,7 +157,13 @@ $adbDevice = Get-ConnectedAdbDevice $adb
 $usingAdbReverse = $false
 $relayHost = $localIP
 
-if (-not $NoAdbReverse -and -not [string]::IsNullOrWhiteSpace($adbDevice)) {
+if ($UseAdbReverse -and -not $NoAdbReverse) {
+  if ([string]::IsNullOrWhiteSpace($adb)) {
+    throw 'ADB is not installed or not on PATH. Install platform-tools or run without -UseAdbReverse.'
+  }
+  if ([string]::IsNullOrWhiteSpace($adbDevice)) {
+    throw 'No connected ADB device found. Connect with USB/wireless debugging or run without -UseAdbReverse.'
+  }
   if (-not $DryRun) {
     & $adb reverse "tcp:$Port" "tcp:$Port" | Out-Null
   }
@@ -131,13 +174,28 @@ if (-not $NoAdbReverse -and -not [string]::IsNullOrWhiteSpace($adbDevice)) {
 $relayURL = "ws://$relayHost`:$Port/v1/relay"
 $backendURL = "http://$relayHost`:$Port"
 $leakMarker = 'E2EE_TEST_SECRET_12345'
+$mcpSafeMode = ($Agent -eq 'codex' -and -not $AllowAppsMcp)
+
+$agentBin = Resolve-AgentBinary $Agent
+if ([string]::IsNullOrWhiteSpace($agentBin)) {
+  if ($Agent -eq 'codex') {
+    throw "Could not find a runnable Codex CLI. The Windows Codex app sandbox binary is not enough. Install with: npm.cmd install -g @openai/codex ; then run: codex.cmd login. You can also run -Agent claude or -Agent demo."
+  }
+  throw "Could not find '$Agent' on PATH. Install the official CLI, set CODEXNOMAD_$($Agent.ToUpper())_BIN, or run with -Agent demo to test QR/E2EE without a real agent."
+}
 
 if ($DryRun) {
   Write-Host "Repo: $repo"
+  Write-Host "Workspace: $workspacePath"
+  if ($Port -ne $requestedPort) {
+    Write-Host "Requested port $requestedPort is busy; using $Port."
+  }
   Write-Host "Relay URL: $relayURL"
   Write-Host "Backend URL: $backendURL"
   Write-Host "Agent: $Agent"
+  Write-Host "Agent binary: $agentBin"
   Write-Host "Run app: $RunApp"
+  Write-Host "Reliable mode (disable apps MCP): $mcpSafeMode"
   Write-Host "ADB reverse: $usingAdbReverse"
   Write-Host "ADB device: $adbDevice"
   Write-Host "Dry run only. No windows started."
@@ -155,13 +213,9 @@ if (-not (Test-Path $relayExe)) {
 if (-not (Test-Path $daemonExe)) {
   throw "Daemon binary missing: $daemonExe"
 }
-
-$agentBin = Resolve-AgentBinary $Agent
-if ([string]::IsNullOrWhiteSpace($agentBin)) {
-  if ($Agent -eq 'codex') {
-    throw "Could not find a runnable Codex CLI. The Windows Codex app sandbox binary is not enough. Install with: npm.cmd install -g @openai/codex ; then run: codex.cmd login. You can also run -Agent claude or -Agent demo."
-  }
-  throw "Could not find '$Agent' on PATH. Install the official CLI, set CODEXNOMAD_$($Agent.ToUpper())_BIN, or run with -Agent demo to test QR/E2EE without a real agent."
+Write-Host "Using $Agent binary: $agentBin"
+if ($Port -ne $requestedPort) {
+  Write-Host "Requested port $requestedPort is busy; using $Port."
 }
 
 $relayLines = @(
@@ -178,9 +232,22 @@ $relayLines = @(
 $relayCommand = New-QuotedCommand $relayLines
 
 $daemonAgent = if ($Agent -eq 'claude') { 'claude' } else { 'codex' }
-$daemonArgs = ''
+$daemonArgTokens = New-Object System.Collections.Generic.List[string]
 if ($Agent -eq 'demo') {
-  $daemonArgs = "-NoLogo -NoProfile -NoExit -Command `"Write-Host 'Codex Nomad demo agent ready'; Write-Host 'Type in the mobile app and watch it arrive here.'`""
+  $daemonArgTokens.Add('-NoLogo')
+  $daemonArgTokens.Add('-NoProfile')
+  $daemonArgTokens.Add('-NoExit')
+  $daemonArgTokens.Add('-Command')
+  $daemonArgTokens.Add("Write-Host 'Codex Nomad demo agent ready'; Write-Host 'Type in the mobile app and watch it arrive here.'")
+} elseif ($mcpSafeMode) {
+  $daemonArgTokens.Add('--disable')
+  $daemonArgTokens.Add('apps')
+}
+$daemonArgs = ($daemonArgTokens | ForEach-Object { ConvertTo-PSStringLiteral $_ }) -join ' '
+$daemonLaunch = if ([string]::IsNullOrWhiteSpace($daemonArgs)) {
+  "& '$daemonExe' $daemonAgent"
+} else {
+  "& '$daemonExe' $daemonAgent $daemonArgs"
 }
 
 $daemonLines = @(
@@ -190,13 +257,16 @@ $daemonLines = @(
   "`$env:CODEXNOMAD_OPEN_QR = '1'",
   "`$env:CODEXNOMAD_CODEX_BIN = $(ConvertTo-PSStringLiteral $agentBin)",
   "`$env:CODEXNOMAD_CLAUDE_BIN = $(ConvertTo-PSStringLiteral $agentBin)",
+  "`$env:CODEXNOMAD_ALLOW_APPS_MCP = '$([int]$AllowAppsMcp.IsPresent)'",
   "Write-Host 'Starting Codex Nomad $Agent session through $relayURL'",
+  "Write-Host 'Workspace: $workspacePath'",
+  "Write-Host 'Reliable mode (disable apps MCP): $mcpSafeMode'",
   "Write-Host 'Scan the QR from the Android app.'",
-  "& '$daemonExe' $daemonAgent $daemonArgs"
+  $daemonLaunch
 )
 $daemonCommand = New-QuotedCommand $daemonLines
 
-Start-Process powershell -WorkingDirectory $repo -ArgumentList @(
+Start-Process powershell -WorkingDirectory $workspacePath -ArgumentList @(
   '-NoExit',
   '-NoProfile',
   '-ExecutionPolicy',
@@ -220,7 +290,7 @@ if (-not $ready) {
   Write-Warning "Relay did not answer $healthURL yet. Check the relay window for errors."
 }
 
-Start-Process powershell -WorkingDirectory $repo -ArgumentList @(
+Start-Process powershell -WorkingDirectory $workspacePath -ArgumentList @(
   '-NoExit',
   '-NoProfile',
   '-ExecutionPolicy',
@@ -260,6 +330,7 @@ Write-Host '4. If relay prints POSSIBLE PLAINTEXT LEAK, encryption is broken. If
 Write-Host ''
 Write-Host "Relay URL:   $relayURL"
 Write-Host "Backend URL: $backendURL"
+Write-Host "Reliable mode (disable apps MCP): $mcpSafeMode"
 if ($usingAdbReverse) {
   Write-Host "ADB reverse: enabled for device $adbDevice"
 } else {

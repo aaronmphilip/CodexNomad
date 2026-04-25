@@ -55,6 +55,7 @@ func (h *Hub) Handle(w http.ResponseWriter, r *http.Request) {
 		log.Printf("ws accept failed: %v", err)
 		return
 	}
+	conn.SetReadLimit(4 << 20)
 	ticket, hasTicket := h.ticketFromRequest(r)
 	c := &client{hub: h, conn: conn, send: make(chan []byte, 256)}
 	if hasTicket {
@@ -73,6 +74,7 @@ func (c *client) readLoop(ctx context.Context) {
 	for {
 		_, raw, err := c.conn.Read(ctx)
 		if err != nil {
+			log.Printf("relay read loop closed sid=%s role=%s err=%v", c.sessionID, c.role, err)
 			return
 		}
 		var msg WireMessage
@@ -155,6 +157,7 @@ func (c *client) writeLoop(ctx context.Context) {
 				return
 			}
 			if err := c.conn.Write(ctx, websocket.MessageText, raw); err != nil {
+				log.Printf("relay write loop closed sid=%s role=%s err=%v", c.sessionID, c.role, err)
 				return
 			}
 		case <-ping.C:

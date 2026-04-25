@@ -29,6 +29,8 @@ dependencies:
   phosphor_flutter: ^2.1.0
   flutter_local_notifications: ^21.0.0
   cryptography: ^2.9.0
+  shared_preferences: ^2.5.5
+  webview_flutter: ^4.10.0
 
 dev_dependencies:
   flutter_test:

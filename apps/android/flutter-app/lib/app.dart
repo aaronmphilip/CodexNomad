@@ -1,4 +1,5 @@
 import 'package:codex_nomad/core/theme/app_theme.dart';
+import 'package:codex_nomad/features/cloud/cloud_session_screen.dart';
 import 'package:codex_nomad/features/home/home_screen.dart';
 import 'package:codex_nomad/features/home/start_work_screen.dart';
 import 'package:codex_nomad/features/live/live_session_screen.dart';
@@ -28,6 +29,10 @@ class CodexNomadApp extends StatelessWidget {
         GoRoute(
           path: '/start',
           builder: (_, __) => const StartWorkScreen(),
+        ),
+        GoRoute(
+          path: '/cloud',
+          builder: (_, __) => const CloudSessionScreen(),
         ),
         GoRoute(path: '/scan', builder: (_, __) => const QrScannerScreen()),
         GoRoute(

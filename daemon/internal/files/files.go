@@ -187,6 +187,50 @@ func Write(root, rel string, data []byte) error {
 	return os.WriteFile(path, data, 0o600)
 }
 
+func Delete(root, rel string) error {
+	path, err := safePath(root, rel)
+	if err != nil {
+		return err
+	}
+	st, err := os.Stat(path)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil
+		}
+		return err
+	}
+	if st.IsDir() {
+		return os.RemoveAll(path)
+	}
+	return os.Remove(path)
+}
+
+func Rename(root, from, to string) error {
+	fromPath, err := safePath(root, from)
+	if err != nil {
+		return err
+	}
+	toPath, err := safePath(root, to)
+	if err != nil {
+		return err
+	}
+	if strings.EqualFold(fromPath, toPath) {
+		return nil
+	}
+	if err := os.MkdirAll(filepath.Dir(toPath), 0o700); err != nil {
+		return err
+	}
+	return os.Rename(fromPath, toPath)
+}
+
+func Mkdir(root, rel string) error {
+	path, err := safePath(root, rel)
+	if err != nil {
+		return err
+	}
+	return os.MkdirAll(path, 0o700)
+}
+
 func safePath(root, rel string) (string, error) {
 	if filepath.IsAbs(rel) {
 		return "", errors.New("absolute paths are not allowed")

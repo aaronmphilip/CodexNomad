@@ -10,6 +10,7 @@ class AppConfig {
     required this.supabaseAnonKey,
     required this.backendBaseUrl,
     required this.appSharedToken,
+    required this.enableCloudProvisioning,
   });
 
   factory AppConfig.fromEnvironment() {
@@ -21,6 +22,9 @@ class AppConfig {
         defaultValue: 'http://10.0.2.2:8080',
       ),
       appSharedToken: String.fromEnvironment('CODEXNOMAD_APP_TOKEN'),
+      enableCloudProvisioning: bool.fromEnvironment(
+        'CODEXNOMAD_ENABLE_CLOUD',
+      ),
     );
   }
 
@@ -28,6 +32,7 @@ class AppConfig {
   final String supabaseAnonKey;
   final String backendBaseUrl;
   final String appSharedToken;
+  final bool enableCloudProvisioning;
 
   bool get hasSupabase => supabaseUrl.isNotEmpty && supabaseAnonKey.isNotEmpty;
 }

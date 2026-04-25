@@ -1,3 +1,4 @@
+import 'package:codex_nomad/core/config/app_config.dart';
 import 'package:codex_nomad/models/pairing_payload.dart';
 import 'package:codex_nomad/providers/app_providers.dart';
 import 'package:flutter/material.dart';
@@ -113,11 +114,30 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     AuthController auth,
     ColorScheme scheme,
   ) {
+    final config = ref.watch(appConfigProvider);
+    final cloudProvisioningEnabled = config.enableCloudProvisioning;
+    final cloudReady = config.appSharedToken.trim().isNotEmpty || auth.signedIn;
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
         Text('Cloud Account', style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 8),
+        Card(
+          child: ListTile(
+            leading: Icon(Icons.cloud_queue_rounded, color: scheme.primary),
+            title: const Text('Cloud runner control'),
+            subtitle: Text(
+              !cloudProvisioningEnabled
+                  ? 'Preview only in this build. Provisioning is disabled.'
+                  : cloudReady
+                      ? 'Start and monitor cloud sessions from phone.'
+                      : 'Set app token or sign in first.',
+            ),
+            trailing: const Icon(Icons.arrow_forward_rounded),
+            onTap: () => context.push('/cloud'),
+          ),
+        ),
+        const SizedBox(height: 10),
         if (!auth.configured)
           Card(
             child: ListTile(

@@ -90,13 +90,13 @@ func checkWritableRuntime(cfg config.Config) doctorCheck {
 func checkRelayHealth(cfg config.Config) doctorCheck {
 	healthURL, err := relayHealthURL(cfg.RelayURL)
 	if err != nil {
-		return doctorCheck{Name: "relay", Status: doctorFail, Detail: err.Error(), Fatal: true}
+		return relayFailure(cfg, err.Error())
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 3500*time.Millisecond)
 	defer cancel()
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, healthURL, nil)
 	if err != nil {
-		return doctorCheck{Name: "relay", Status: doctorFail, Detail: err.Error(), Fatal: true}
+		return relayFailure(cfg, err.Error())
 	}
 	if cfg.RelayToken != "" {
 		req.Header.Set("Authorization", "Bearer "+cfg.RelayToken)
@@ -104,13 +104,34 @@ func checkRelayHealth(cfg config.Config) doctorCheck {
 	}
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return doctorCheck{Name: "relay", Status: doctorFail, Detail: fmt.Sprintf("%s is unreachable: %v", healthURL, err), Fatal: true}
+		return relayFailure(cfg, fmt.Sprintf("%s is unreachable: %v", healthURL, err))
 	}
 	defer res.Body.Close()
 	if res.StatusCode < 200 || res.StatusCode >= 300 {
-		return doctorCheck{Name: "relay", Status: doctorFail, Detail: fmt.Sprintf("%s returned %s", healthURL, res.Status), Fatal: true}
+		return relayFailure(cfg, fmt.Sprintf("%s returned %s", healthURL, res.Status))
 	}
 	return doctorCheck{Name: "relay", Status: doctorOK, Detail: cfg.RelayURL}
+}
+
+func relayFailure(cfg config.Config, detail string) doctorCheck {
+	if cfg.RequireRelay {
+		return doctorCheck{
+			Name:   "relay",
+			Status: doctorFail,
+			Detail: detail,
+			Fatal:  true,
+		}
+	}
+	hint := "Relay is optional for this check. Local test mode starts a local relay and sets CODEXNOMAD_RELAY_URL automatically."
+	if strings.TrimSpace(detail) == "" {
+		detail = "relay check failed."
+	}
+	return doctorCheck{
+		Name:   "relay",
+		Status: doctorWarn,
+		Detail: fmt.Sprintf("%s %s", detail, hint),
+		Fatal:  false,
+	}
 }
 
 func checkTrustedDevices(cfg config.Config) doctorCheck {

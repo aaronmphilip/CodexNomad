@@ -56,6 +56,8 @@ Files:
 Flutter local app:
 
 - Free Local Mode first-screen experience.
+- One-shot local launch flow: write the task on phone, start desktop daemon,
+  scan QR, and auto-send the first prompt after encrypted pairing.
 - Black/purple premium dark theme.
 - Bricolage Grotesque typography.
 - Phosphor icon system.
@@ -100,6 +102,14 @@ Backend:
 - Cloud session state polling.
 - Stale droplet cleanup worker.
 - Dockerfile and Docker Compose.
+
+Cloud UI boundary:
+
+- Cloud screens are present in the Android app, but provisioning is disabled by
+  default unless `CODEXNOMAD_ENABLE_CLOUD=true` is supplied at build time.
+- Local mode is the working v1 path. Cloud must stay preview-only until hosted
+  backend, billing, DigitalOcean, Tailscale, and workspace restore are wired and
+  tested with real credentials.
 
 ## Verified
 

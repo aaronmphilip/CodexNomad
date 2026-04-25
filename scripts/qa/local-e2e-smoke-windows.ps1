@@ -131,12 +131,19 @@ try {
 
   Push-Location (Join-Path $repo 'daemon')
   try {
-    $mobileOutput = & go run .\cmd\mobile-smoke `
-      -pairing-uri $pairingURI `
-      -send $sendCommand `
-      -expect $expected `
-      -timeout "$TimeoutSeconds`s" 2>&1
-    $mobileOutput | Set-Content -Encoding UTF8 -Path $mobileOut
+    $previousErrorActionPreference = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+      $mobileOutput = & go run .\cmd\mobile-smoke `
+        -pairing-uri $pairingURI `
+        -send $sendCommand `
+        -expect $expected `
+        -timeout "$TimeoutSeconds`s" `
+        -verbose 2>&1
+    } finally {
+      $ErrorActionPreference = $previousErrorActionPreference
+    }
+    $mobileOutput | ForEach-Object { "$_" } | Set-Content -Encoding UTF8 -Path $mobileOut
     if ($LASTEXITCODE -ne 0) {
       throw "mobile-smoke exited with code $LASTEXITCODE"
     }

@@ -36,7 +36,11 @@ func (r Resolver) Command(agent Agent, args []string) (*exec.Cmd, error) {
 	if err != nil {
 		return nil, err
 	}
-	return exec.Command(path, args...), nil
+	effectiveArgs := append([]string(nil), args...)
+	if agent == AgentCodex {
+		effectiveArgs = withCodexDefaults(effectiveArgs)
+	}
+	return exec.Command(path, effectiveArgs...), nil
 }
 
 func envName(agent Agent) string {
@@ -105,4 +109,50 @@ func isWindowsCodexAppBinary(path string) bool {
 	normalized := strings.ToLower(filepath.Clean(path))
 	return strings.Contains(normalized, `\windowsapps\openai.codex_`) &&
 		strings.HasSuffix(normalized, `\app\resources\codex.exe`)
+}
+
+func withCodexDefaults(args []string) []string {
+	if allowAppsMcp() || hasAppsMcpFlag(args) {
+		return args
+	}
+	return append([]string{"--disable", "apps"}, args...)
+}
+
+func allowAppsMcp() bool {
+	value := strings.TrimSpace(strings.ToLower(os.Getenv("CODEXNOMAD_ALLOW_APPS_MCP")))
+	return value == "1" || value == "true" || value == "yes" || value == "on"
+}
+
+func hasAppsMcpFlag(args []string) bool {
+	for i := 0; i < len(args); i++ {
+		current := strings.TrimSpace(strings.ToLower(args[i]))
+		switch {
+		case current == "--disable":
+			if i+1 < len(args) && hasAppsToken(args[i+1]) {
+				return true
+			}
+		case current == "--enable":
+			if i+1 < len(args) && hasAppsToken(args[i+1]) {
+				return true
+			}
+		case strings.HasPrefix(current, "--disable="):
+			if hasAppsToken(strings.TrimPrefix(current, "--disable=")) {
+				return true
+			}
+		case strings.HasPrefix(current, "--enable="):
+			if hasAppsToken(strings.TrimPrefix(current, "--enable=")) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func hasAppsToken(value string) bool {
+	for _, token := range strings.Split(strings.ToLower(value), ",") {
+		if strings.TrimSpace(token) == "apps" {
+			return true
+		}
+	}
+	return false
 }

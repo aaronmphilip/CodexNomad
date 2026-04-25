@@ -55,15 +55,18 @@ class RelayService {
     final uri = await _relayUri(pairing);
     debugPrint('CodexNomad relay connect: $uri');
     _events.add(RelayEvent('connecting', {'url': uri.toString()}));
-    _channel = WebSocketChannel.connect(uri);
+    final channel = WebSocketChannel.connect(uri);
+    _channel = channel;
 
-    _channel!.stream.listen(
+    channel.stream.listen(
       _handleRaw,
       onError: (dynamic error) {
+        if (!identical(_channel, channel)) return;
         debugPrint('CodexNomad relay error: $error');
         _events.add(RelayEvent('disconnect', {'error': '$error'}));
       },
       onDone: () {
+        if (!identical(_channel, channel)) return;
         debugPrint('CodexNomad relay closed');
         _events.add(
             const RelayEvent('disconnect', {'error': 'Relay socket closed'}));
@@ -203,8 +206,9 @@ class RelayService {
   Future<void> _closeSocket() async {
     _pingTimer?.cancel();
     _pingTimer = null;
-    await _channel?.sink.close();
+    final channel = _channel;
     _channel = null;
+    await channel?.sink.close();
   }
 
   String _deviceIdForPublicKey(String publicKey) {

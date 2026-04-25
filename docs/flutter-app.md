@@ -13,8 +13,12 @@ This is the local PC-on Android app:
 - Changed-file and project-file browser.
 - Inline editor with syntax highlighting and `Save & Push`.
 - Supabase magic-link auth scaffold and session-list integration hooks.
+- Cloud-mode control surface as preview UI.
 
-Cloud/trial UI is intentionally not implemented in this pass.
+Cloud provisioning is disabled by default in app builds. The Cloud screen exists
+so the product path is visible, but it must not start paid runners unless the
+app is built with `CODEXNOMAD_ENABLE_CLOUD=true` and the hosted backend,
+billing, DigitalOcean, Tailscale, and workspace restore paths are wired.
 
 ## Security Rule
 

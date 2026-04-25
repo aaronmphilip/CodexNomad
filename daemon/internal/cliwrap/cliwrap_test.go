@@ -41,3 +41,46 @@ func TestResolveExecutableRejectsWindowsCodexAppBinary(t *testing.T) {
 		t.Fatalf("Windows login hint missing from error: %v", err)
 	}
 }
+
+func TestWithCodexDefaultsInjectsDisableApps(t *testing.T) {
+	t.Setenv("CODEXNOMAD_ALLOW_APPS_MCP", "")
+	got := withCodexDefaults([]string{"--model", "gpt-5.4", "hi"})
+	wantPrefix := []string{"--disable", "apps"}
+	if len(got) < len(wantPrefix) {
+		t.Fatalf("withCodexDefaults returned too few args: %v", got)
+	}
+	if got[0] != wantPrefix[0] || got[1] != wantPrefix[1] {
+		t.Fatalf("expected args to start with %v, got %v", wantPrefix, got)
+	}
+}
+
+func TestWithCodexDefaultsRespectsExplicitAppsFlags(t *testing.T) {
+	t.Setenv("CODEXNOMAD_ALLOW_APPS_MCP", "")
+	cases := [][]string{
+		{"--disable", "apps", "prompt"},
+		{"--disable=apps", "prompt"},
+		{"--enable", "apps", "prompt"},
+		{"--enable=apps", "prompt"},
+		{"--disable", "all,apps", "prompt"},
+	}
+	for _, args := range cases {
+		got := withCodexDefaults(args)
+		if len(got) != len(args) {
+			t.Fatalf("expected args to be unchanged for %v, got %v", args, got)
+		}
+		for i := range args {
+			if got[i] != args[i] {
+				t.Fatalf("expected args to be unchanged for %v, got %v", args, got)
+			}
+		}
+	}
+}
+
+func TestWithCodexDefaultsAllowsAppsViaEnv(t *testing.T) {
+	t.Setenv("CODEXNOMAD_ALLOW_APPS_MCP", "1")
+	args := []string{"prompt"}
+	got := withCodexDefaults(args)
+	if len(got) != len(args) || got[0] != args[0] {
+		t.Fatalf("expected args to be unchanged, got %v", got)
+	}
+}

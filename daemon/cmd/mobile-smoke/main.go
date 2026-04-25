@@ -40,6 +40,7 @@ func run() error {
 	sendText := flag.String("send", "E2EE_SMOKE_MARKER", "text to send as mobile stdin")
 	expectText := flag.String("expect", "", "terminal text expected after sending stdin")
 	timeout := flag.Duration("timeout", 30*time.Second, "overall smoke timeout")
+	verbose := flag.Bool("verbose", false, "print decrypted event types to stderr")
 	flag.Parse()
 
 	if strings.TrimSpace(*pairingURI) == "" {
@@ -72,6 +73,7 @@ func run() error {
 	if err != nil {
 		return err
 	}
+	conn.SetReadLimit(4 << 20)
 	defer conn.Close(websocket.StatusNormalClosure, "smoke complete")
 
 	mobilePub := e2ee.EncodePublicKey(kp.Public)
@@ -89,11 +91,32 @@ func run() error {
 	var sendSeq uint64
 	var lastRecv uint64
 	sent := false
+	ready := false
 	var terminal strings.Builder
+	sendOnce := func() error {
+		if sent {
+			return nil
+		}
+		sendSeq++
+		if err := sendCiphertext(ctx, conn, payload.SessionID, sendSeq, kp, peer, "stdin", map[string]any{
+			"text": ensureLine(*sendText),
+		}); err != nil {
+			return err
+		}
+		sent = true
+		return nil
+	}
 
 	for {
 		_, raw, err := conn.Read(ctx)
 		if err != nil {
+			if terminal.Len() > 0 {
+				if terminalContains(terminal.String(), expected) {
+					fmt.Printf("\nmobile smoke passed: observed %q\n", expected)
+					return nil
+				}
+				return fmt.Errorf("%w; terminal output before close:\n%s", err, terminal.String())
+			}
 			return err
 		}
 		var msg wireMessage
@@ -108,19 +131,17 @@ func run() error {
 					return err
 				}
 			}
-			if !sent {
-				sendSeq++
-				if err := sendCiphertext(ctx, conn, payload.SessionID, sendSeq, kp, peer, "stdin", map[string]any{
-					"text": ensureLine(*sendText),
-				}); err != nil {
-					return err
-				}
-				sent = true
-			}
+			ready = true
 		case "ciphertext":
 			plain, err := openCiphertext(kp, peer, msg.Payload, &lastRecv)
 			if err != nil {
 				return err
+			}
+			if *verbose {
+				fmt.Fprintf(os.Stderr, "mobile smoke event: %s\n", plain.Type)
+			}
+			if plain.Type == "session_ready" || plain.Type == "session_started" {
+				ready = true
 			}
 			if plain.Type == "terminal_output" {
 				text := terminalText(plain.Data)
@@ -128,13 +149,18 @@ func run() error {
 					terminal.WriteString(text)
 					fmt.Print(text)
 				}
-				if strings.Contains(terminal.String(), expected) {
+				if terminalContains(terminal.String(), expected) {
 					sendSeq++
 					_ = sendCiphertext(ctx, conn, payload.SessionID, sendSeq, kp, peer, "stdin", map[string]any{
 						"text": "exit\n",
 					})
 					fmt.Printf("\nmobile smoke passed: observed %q\n", expected)
 					return nil
+				}
+				if ready && !sent {
+					if err := sendOnce(); err != nil {
+						return err
+					}
 				}
 			}
 		case "pairing_expired":
@@ -221,6 +247,19 @@ func terminalText(raw json.RawMessage) string {
 		}
 	}
 	return data.Data
+}
+
+func terminalContains(haystack, needle string) bool {
+	if strings.Contains(haystack, needle) {
+		return true
+	}
+	cleaned := strings.Map(func(r rune) rune {
+		if (r >= 0 && r < 32 && r != '\n' && r != '\r' && r != '\t') || r == 127 {
+			return -1
+		}
+		return r
+	}, haystack)
+	return strings.Contains(cleaned, needle)
 }
 
 func writeJSON(ctx context.Context, conn *websocket.Conn, msg wireMessage) error {

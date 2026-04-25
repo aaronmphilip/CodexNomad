@@ -39,6 +39,7 @@ func (c Client) Run(ctx context.Context, inbound chan<- WireMessage, outbound <-
 	if err != nil {
 		return err
 	}
+	conn.SetReadLimit(4 << 20)
 	defer conn.Close(websocket.StatusNormalClosure, "daemon shutdown")
 
 	if err := c.writeJSON(ctx, conn, WireMessage{

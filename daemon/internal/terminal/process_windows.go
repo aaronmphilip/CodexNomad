@@ -291,10 +291,15 @@ func normalizeInput(data []byte) []byte {
 	if len(data) == 0 {
 		return data
 	}
-	out := make([]byte, 0, len(data))
-	for _, b := range data {
+	out := make([]byte, 0, len(data)+4)
+	for i, b := range data {
 		if b == '\n' {
+			if i > 0 && data[i-1] == '\r' {
+				out = append(out, b)
+				continue
+			}
 			out = append(out, '\r')
+			out = append(out, '\n')
 			continue
 		}
 		out = append(out, b)

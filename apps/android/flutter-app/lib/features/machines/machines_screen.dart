@@ -57,7 +57,17 @@ class MachinesScreen extends ConsumerWidget {
               for (final session in sessions)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 10),
-                  child: _SessionRow(summary: session),
+                  child: _SessionRow(
+                    summary: session,
+                    onTap: () {
+                      ref
+                          .read(sessionControllerProvider)
+                          .openHistory(session.id)
+                          .then((_) {
+                        if (context.mounted) context.push('/live');
+                      });
+                    },
+                  ),
                 ),
           ],
         ),
@@ -262,9 +272,10 @@ class _StatusPill extends StatelessWidget {
 }
 
 class _SessionRow extends StatelessWidget {
-  const _SessionRow({required this.summary});
+  const _SessionRow({required this.summary, required this.onTap});
 
   final SessionSummary summary;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -278,12 +289,18 @@ class _SessionRow extends StatelessWidget {
           color: scheme.primary,
         ),
         title: Text(
-          summary.machineName,
+          summary.title.isEmpty
+              ? summary.workspaceRoot.isEmpty
+                  ? summary.machineName
+                  : _workspaceName(summary.workspaceRoot)
+              : summary.title,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
         subtitle: Text(
-          '${summary.agent.label} - ${summary.machineOs.isEmpty ? summary.mode : summary.machineOs}',
+          summary.workspaceRoot.isEmpty
+              ? '${summary.agent.label} - ${summary.machineOs.isEmpty ? summary.mode : summary.machineOs}'
+              : summary.workspaceRoot,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
@@ -292,9 +309,16 @@ class _SessionRow extends StatelessWidget {
           color: scheme.onSurfaceVariant,
           size: 18,
         ),
-        onTap: () => context.push('/live'),
+        onTap: onTap,
       ),
     );
+  }
+
+  String _workspaceName(String root) {
+    final value = root.trim().replaceAll('\\', '/');
+    if (value.isEmpty) return summary.machineName;
+    final parts = value.split('/').where((part) => part.isNotEmpty).toList();
+    return parts.isEmpty ? value : parts.last;
   }
 }
 

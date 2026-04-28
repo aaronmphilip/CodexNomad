@@ -1,6 +1,14 @@
 # Codex Nomad Daemon
 
+## Status Now:
+
+Stopped building this because there is no demand for it. Focusing on other projects.
+
+## The Idea
+
 Codex Nomad is the Android-first remote-control layer for Codex and Claude Code. The daemon is a single Go binary that wraps the official CLI, creates a fresh encrypted session, displays a QR pairing code, and streams terminal/file events through the relay as ciphertext.
+
+
 
 ## Free local mode
 
